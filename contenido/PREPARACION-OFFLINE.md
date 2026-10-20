@@ -1,88 +1,110 @@
-# Preparación para CTF offline (VM Kali)
+# Dejar Kali listo para CYBERFEI 3.0 (offline)
 
-Como el evento es **sin internet**, hay que descargar TODO antes. Haz esto desde la VM de Kali **con red**, días antes.
-
-## 1. Actualiza e instala herramientas
-```bash
-sudo apt update && sudo apt -y full-upgrade
-
-sudo apt -y install \
-  nmap gobuster ffuf whatweb sqlmap hydra \
-  binwalk foremost exiftool steghide zsteg pngcheck \
-  tshark tcpflow \
-  gdb radare2 ghidra \
-  john hashcat hashid \
-  python3-pip net-tools netcat-openbsd
-
-# pip (quedan cacheados en la VM)
-pip install --user pwntools sympy pycryptodome requests
-```
-> `zsteg` a veces va por gem: `sudo gem install zsteg`.
-> Burp Suite Community y Wireshark ya vienen en Kali.
-
-## 2. Diccionarios
-```bash
-# rockyou viene comprimido en Kali
-sudo gunzip -k /usr/share/wordlists/rockyou.txt.gz
-ls /usr/share/wordlists/      # dirb, dirbuster, seclists...
-sudo apt -y install seclists  # colección grande de wordlists
-```
-
-## 3. Repos que conviene clonar (funcionan offline)
-```bash
-mkdir -p ~/tools && cd ~/tools
-git clone https://github.com/Ganapati/RsaCtfTool
-git clone https://github.com/gchq/CyberChef      # abre CyberChef_vX.html en el navegador, offline
-git clone https://github.com/pwndbg/pwndbg && cd pwndbg && ./setup.sh && cd ..
-git clone https://github.com/RsaCtfTool/RsaCtfTool 2>/dev/null
-# ROPgadget / ropper
-pip install --user ROPgadget ropper
-```
-- **StegSolve** (jar): descarga el `.jar` y guárdalo en `~/tools`.
-- **Ghidra** ya viene; si no, descarga el zip oficial.
-
-## 3b. Descargas que piden red HOY (evento offline mañana)
-```bash
-# ExploitDB local -> habilita searchsploit sin internet
-sudo apt -y install exploitdb && searchsploit -u   # -u actualiza la base
-
-# wpscan + su base de vulnerabilidades (si vas a tocar WordPress)
-sudo apt -y install wpscan && wpscan --update
-
-# Docs y payloads que funcionan offline (clónalos)
-git clone --depth 1 https://github.com/danielmiessler/SecLists ~/tools/SecLists
-git clone --depth 1 https://github.com/swisskyrepo/PayloadsAllTheThings ~/tools/PayloadsAllTheThings
-git clone --depth 1 https://github.com/carlospolop/hacktricks ~/tools/hacktricks
-# GTFOBins: clona el repo o guarda el sitio para consultar abusos de binarios SUID
-git clone --depth 1 https://github.com/GTFOBins/GTFOBins.github.io ~/tools/GTFOBins
-```
-> Recuerda la **regla 5**: `wpscan`/`sqlmap` son zona gris; `searchsploit` es solo consulta local (ok). Confirma con los organizadores antes de usar los automáticos.
-
-## 4. Verifica que todo corre SIN red
-Antes del evento, desconecta la red de la VM y comprueba:
-```bash
-nmap --version && sqlmap --version && gdb --version
-python3 -c "import pwn, Crypto, sympy; print('pwntools+cripto OK')"
-python3 ~/Documents/CTF-Kit/scripts/decode.py "aGVsbG8="   # debe mostrar 'hello'
-```
-
-## 5. Copia este kit a la VM de Kali
-Desde la VM, por carpeta compartida o USB:
-```bash
-cp -r /ruta/al/CTF-Kit ~/CTF-Kit
-chmod +x ~/CTF-Kit/scripts/*.sh ~/CTF-Kit/scripts/*.py
-```
-
-## 6. Snapshot
-Cuando todo funcione offline, toma un **snapshot** de la VM. Si algo se rompe durante el evento, vuelves al estado bueno en segundos.
+Evento: **21 oct 2026 · Salón Cristal · 3.5 h · SIN internet.**
+Haz TODO esto HOY, con red. Mañana no se instala ni se descarga nada.
+Orden: instala → descarga offline → verifica sin red → snapshot.
 
 ---
 
-## Checklist del día
-- [ ] VM arranca y herramientas corren sin red
-- [ ] Conozco el **formato de la flag**
-- [ ] Carpeta por reto, con su `PLANTILLA-writeup.md`
-- [ ] Empiezo por los retos de menos puntos
-- [ ] Anoto cada intento (sirve para el write-up)
-- [ ] No ataco la plataforma ni a otros equipos (salvo Attack-Defense)
-- [ ] Si me atoro 30–45 min, cambio de reto y regreso
+## 0. Actualiza Kali
+```bash
+sudo apt update && sudo apt -y full-upgrade
+```
+
+## 1. Instala lo que pueda faltar
+Kali trae casi todo, pero asegura estos (los usamos en la guía):
+```bash
+sudo apt -y install \
+  nmap wireshark tshark tcpdump netcat-openbsd socat \
+  ffuf gobuster feroxbuster gobuster whatweb hydra wpscan exploitdb \
+  binwalk foremost exiftool steghide stegseek zsteg pngcheck zbar-tools sleuthkit \
+  gdb radare2 ltrace strace ghidra \
+  john hashcat hashid \
+  python3-pip jq imagemagick poppler-utils qpdf audacity \
+  metasploit-framework seclists
+```
+> Si uno no existe con ese nombre: `apt search <palabra>`. `zsteg` a veces va por gem: `sudo gem install zsteg`.
+
+## 2. Librerías de Python (por apt — Kali bloquea pip por PEP 668)
+```bash
+sudo apt -y install python3-pwntools python3-pycryptodome python3-sympy python3-requests python3-pil
+```
+> `pip install` da error `externally-managed-environment` en Kali. Instala por apt (arriba). Si una librería no existe por apt, solo para esa: `pip install --user --break-system-packages NOMBRE`.
+
+## 3. Wordlists
+```bash
+# rockyou viene comprimido en Kali: descomprímelo
+sudo gunzip -k /usr/share/wordlists/rockyou.txt.gz
+```
+```bash
+# confirma que están rockyou y SecLists
+ls /usr/share/wordlists/ ; ls /usr/share/seclists/
+```
+
+## 4. Bases de datos de exploits (que funcionen offline)
+```bash
+# ExploitDB local -> searchsploit sin internet
+searchsploit -u
+```
+```bash
+# wpscan: descarga su base de vulnerabilidades (si tocarás WordPress)
+wpscan --update
+```
+```bash
+# Metasploit: inicia la base de datos (una vez)
+sudo msfdb init
+```
+
+## 5. Documentación offline (clónala hoy)
+```bash
+mkdir -p ~/tools && cd ~/tools
+git clone --depth 1 https://github.com/carlospolop/hacktricks
+git clone --depth 1 https://github.com/swisskyrepo/PayloadsAllTheThings
+git clone --depth 1 https://github.com/GTFOBins/GTFOBins.github.io
+git clone --depth 1 https://github.com/gchq/CyberChef
+```
+- **CyberChef offline:** abre `~/tools/CyberChef/CyberChef_vXX.html` en el navegador; funciona sin red (operación *Magic* para decodificar).
+- **StegSolve** (para estego visual): descarga el `.jar` y guárdalo en `~/tools`.
+- **Ghidra** ya viene en Kali (`ghidra`).
+
+## 6. Copia el kit a la VM
+Desde la VM (carpeta compartida o USB):
+```bash
+cp -r /ruta/al/CTF-Kit ~/CTF-Kit && chmod +x ~/CTF-Kit/scripts/*.sh ~/CTF-Kit/scripts/*.py
+```
+
+---
+
+## 7. ⚠️ Verificación OFFLINE (lo que casi nadie hace)
+**Desconecta el wifi** y comprueba que todo abre sin red:
+```bash
+nmap --version && sqlmap --version && gdb --version && hashcat --version && vol -h | head -1
+```
+```bash
+python3 -c "import pwn, Crypto, sympy; print('pwntools+cripto OK')"
+```
+```bash
+searchsploit apache 2.4.49
+```
+- Abre **CyberChef** desde el HTML local en el navegador → decodifica un base64 de prueba.
+- Abre **Wireshark** y **Ghidra** (que arranquen).
+- Resuelve 1–2 retos fáciles de picoGym por categoría **sin internet** para confirmar que sabes usar cada herramienta.
+
+## 8. Snapshot
+Con todo funcionando offline, toma un **snapshot** de la VM. Si mañana algo se rompe, vuelves al estado bueno en segundos.
+
+---
+
+## Checklist final (marca antes de dormir)
+- [ ] Kali actualizado y herramientas instaladas
+- [ ] rockyou descomprimido + SecLists presente
+- [ ] `searchsploit -u`, `wpscan --update`, `msfdb init` hechos
+- [ ] HackTricks, PayloadsAllTheThings, GTFOBins y CyberChef clonados
+- [ ] Verificado TODO con el wifi apagado
+- [ ] Kit copiado a `~/CTF-Kit`
+- [ ] **Snapshot** tomado
+- [ ] Sé el formato de la flag: `flag{...}` / `CyberFEI{...}`
+- [ ] Recuerdo la regla: comandos propios, no scripts de terceros ni IA
+
+## Zona gris — pregunta a los organizadores antes de usar
+`sqlmap`, `wpscan`, `hydra`, `nikto`/`nuclei`, Metasploit. Si dudan, hazlo manual y documéntalo.
