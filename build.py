@@ -21,8 +21,9 @@ checkboxes, citas >, tablas, líneas ---, enlaces).
 """
 
 import html
+import json
 import re
-import os
+import unicodedata
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent         # raíz del repo
@@ -30,12 +31,88 @@ CONTENIDO = RAIZ / "contenido"                  # aquí viven los .md
 SALIDA = RAIZ / "index.html"
 
 # ---- Lista de secciones. Para añadir contenido, agrega una tupla aquí. ----
-# (nombre_de_archivo_en_Descargas, título visible, emoji, id_seccion)
+# (nombre_de_archivo_en_contenido, título visible, emoji, id_seccion)
 FUENTES = [
     ("COMANDOS.md",               "Comandos",            "⌨️", "comandos"),
     ("GUIA-EXPLICADA.md",         "Guía explicada",      "📖", "guia"),
     ("PREPARACION-OFFLINE.md",    "Preparación offline", "📦", "preparacion"),
 ]
+
+# ---------------------- Inteligencia del buscador -------------------------
+# SINONIMOS: lo que el usuario podría ESCRIBIR  ->  términos que SÍ aparecen
+# en el contenido (herramientas, banderas, palabras). Así una búsqueda por
+# concepto ("osint", "escaneo de puertos") encuentra las secciones aunque esas
+# palabras no estén en el título. Las claves se normalizan (minúsculas, sin acentos).
+# Para ampliarlo: agrega una entrada aquí y regenera.
+SINONIMOS = {
+    "osint": ["osint", "whois", "exiftool", "metadatos", "metadata", "geolocalizacion",
+              "coordenadas", "gps", "dork", "google", "shodan", "usuario", "email", "foto"],
+    "escaneo de puertos": ["nmap", "puertos", "puerto", "-p-", "servicios", "servicio",
+                           "banner", "-sv", "-sc", "open", "filtered"],
+    "escaneo": ["nmap", "gobuster", "feroxbuster", "ffuf", "enumerar", "descubrir"],
+    "red": ["nmap", "nc", "netcat", "tshark", "tcpdump", "pcap", "puertos", "servicios"],
+    "conexion ssh": ["ssh", "hydra", "nc", "netcat", "reverse shell", "/dev/tcp", "22"],
+    "ssh": ["ssh", "hydra", "sftp", "22", "clave", "id_rsa"],
+    "fuerza bruta": ["hydra", "hashcat", "john", "rockyou", "diccionario", "wordlist"],
+    "contrasena": ["hashcat", "john", "hashid", "rockyou", "hash", "password", "clave", "crack"],
+    "hash": ["hashid", "hashcat", "john", "md5", "sha1", "sha256", "bcrypt", "ntlm"],
+    "estego": ["zsteg", "steghide", "stegseek", "binwalk", "exiftool", "lsb",
+               "stegsolve", "espectrograma", "audacity", "oculto"],
+    "esteganografia": ["zsteg", "steghide", "stegseek", "binwalk", "lsb", "stegsolve", "espectrograma"],
+    "imagen": ["zsteg", "steghide", "exiftool", "binwalk", "stegsolve", "png", "jpg"],
+    "audio": ["espectrograma", "audacity", "wav", "sonido"],
+    "trafico": ["wireshark", "tshark", "tcpdump", "pcap", "follow tcp", "stream", "captura"],
+    "pcap": ["wireshark", "tshark", "tcpdump", "follow tcp", "stream"],
+    "web": ["curl", "feroxbuster", "gobuster", "ffuf", "sqlmap", "ssti", "lfi", "sql",
+            "jwt", "cookie", "http", "header"],
+    "sql": ["sqlmap", "union", "order by", "inyeccion", "injection", "' or", "admin'--"],
+    "inyeccion": ["sql", "sqlmap", "ssti", "command injection", "lfi", "xss", "payload"],
+    "reversing": ["gdb", "radare2", "ghidra", "ltrace", "strace", "checksec", "strings", "elf", "binario"],
+    "binario": ["gdb", "radare2", "ghidra", "checksec", "elf", "ltrace", "pwn"],
+    "pwn": ["gdb", "checksec", "rop", "ret2libc", "buffer", "overflow", "pwntools"],
+    "forense": ["volatility", "vol", "foremost", "sleuthkit", "carving", "autopsy", "binwalk"],
+    "memoria": ["volatility", "vol", "dump", "pslist", "cmdline", "mem", "raw"],
+    "disco": ["foremost", "sleuthkit", "carving", "img", "recuperar", "borrado"],
+    "shell": ["nc", "netcat", "reverse shell", "/dev/tcp", "bash -i", "web shell", "listener", "4444"],
+    "reverse shell": ["nc", "netcat", "/dev/tcp", "bash -i", "listener", "4444", "python3"],
+    "escalada": ["sudo -l", "gtfobins", "suid", "root", "privilegios", "find"],
+    "decodificar": ["base64", "hex", "rot", "cyberchef", "magic", "xxd", "decode"],
+    "cripto": ["rsa", "base64", "cyberchef", "xor", "aes", "rot", "rsactftool"],
+    "flag": ["grep", "flag{", "cyberfei{", "bandera"],
+    "triage": ["file", "strings", "exiftool", "binwalk", "xxd", "magic bytes"],
+    "logs": ["grep", "logs", "access.log", "auth.log", "blue team"],
+    "wordpress": ["wpscan", "wp", "plugin", "tema"],
+    "exploit": ["searchsploit", "exploitdb", "msfconsole", "metasploit", "cve"],
+}
+
+# CATEGORIAS para los chips: (etiqueta visible, consulta que dispara).
+CATEGORIAS = [
+    ("OSINT",           "osint"),
+    ("Red / Escaneo",   "escaneo de puertos"),
+    ("Web",             "web"),
+    ("Cripto / Estego", "estego"),
+    ("Forense",         "forense"),
+    ("Pwn / Rev",       "reversing"),
+    ("Contraseñas",     "contrasena"),
+    ("Shell",           "shell"),
+]
+
+# HERRAMIENTAS conocidas: se detectan en el cuerpo aunque no sean la 1ª palabra.
+HERRAMIENTAS = {
+    "nmap", "nc", "netcat", "curl", "wget", "feroxbuster", "gobuster", "ffuf", "dirb",
+    "whatweb", "sqlmap", "hydra", "hashcat", "john", "hashid", "zsteg", "steghide",
+    "stegseek", "stegsolve", "binwalk", "foremost", "exiftool", "tshark", "tcpdump",
+    "wireshark", "gdb", "radare2", "r2", "ghidra", "ltrace", "strace", "checksec",
+    "strings", "xxd", "file", "volatility", "vol", "searchsploit", "wpscan", "msfconsole",
+    "metasploit", "cyberchef", "rsactftool", "pwntools", "ropgadget", "ropper", "grep",
+    "zip2john", "ssh", "ftp", "smbclient", "bash", "python3",
+}
+
+def normaliza(texto):
+    """minúsculas + sin acentos (para comparar sin importar tildes)."""
+    texto = unicodedata.normalize("NFD", texto)
+    texto = "".join(c for c in texto if unicodedata.category(c) != "Mn")
+    return texto.lower()
 
 # ------------------------- Conversor Markdown ------------------------------
 
@@ -82,12 +159,45 @@ def inline(text):
     text = re.sub(r"\x00(\d+)\x00", _pop, text)
     return text
 
-def convert(md, headings):
-    """Convierte markdown a html. Rellena `headings` con (nivel, texto, slug)."""
+def _plano(texto):
+    """Texto plano para indexar: quita marcas md, enlaces y comentarios html."""
+    texto = re.sub(r"<!--.*?-->", " ", texto)
+    texto = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", texto)  # [a](b) -> a
+    texto = re.sub(r"[`*_>#|]", " ", texto)
+    return re.sub(r"\s+", " ", texto).strip()
+
+def _herramientas(texto):
+    """Nombres de herramientas conocidas que aparezcan en el texto."""
+    found = set()
+    for tok in re.findall(r"[A-Za-z0-9_][A-Za-z0-9_.-]*", texto):
+        if tok.lower() in HERRAMIENTAS:
+            found.add(tok.lower())
+    return found
+
+def convert(md, headings, secindex):
+    """Convierte markdown a html.
+
+    - Rellena `headings` con (nivel, texto, slug).
+    - Rellena `secindex[slug] = {text:[...], tools:set(), tags:[...]}` con el
+      cuerpo de cada sección (para el buscador).
+    """
     lines = md.split("\n")
     out = []
     i = 0
     n = len(lines)
+
+    current = None  # slug de la sección en curso
+
+    def idx(texto="", tools=None, tags=None):
+        if current is None:
+            return
+        e = secindex.setdefault(current, {"text": [], "tools": set(), "tags": []})
+        if texto:
+            e["text"].append(_plano(texto))
+        if tools:
+            e["tools"].update(tools)
+        if tags:
+            e["tags"].extend(tags)
 
     def close_list(stack):
         while stack:
@@ -98,6 +208,14 @@ def convert(md, headings):
 
     while i < n:
         line = lines[i]
+
+        # Comentario de etiquetas:  <!-- tags: a, b, c -->  (no se renderiza)
+        m = re.match(r"^\s*<!--\s*tags:\s*(.*?)\s*-->\s*$", line, re.IGNORECASE)
+        if m:
+            tags = [t.strip() for t in re.split(r"[,;]", m.group(1)) if t.strip()]
+            idx(" ".join(tags), tags=tags)
+            i += 1
+            continue
 
         # Bloque de código ```
         m = re.match(r"^```(.*)$", line)
@@ -110,7 +228,9 @@ def convert(md, headings):
                 buf.append(lines[i])
                 i += 1
             i += 1  # saltar cierre
-            code = html.escape("\n".join(buf), quote=False)
+            raw = "\n".join(buf)
+            idx(raw, tools=_herramientas(raw))
+            code = html.escape(raw, quote=False)
             cls = f' data-lang="{html.escape(lang, quote=True)}"' if lang else ""
             out.append(f'<div class="code"><button class="copy" title="Copiar">copiar</button><pre{cls}><code>{code}</code></pre></div>')
             continue
@@ -123,7 +243,12 @@ def convert(md, headings):
             text = m.group(2).strip()
             slug = slugify(text)
             if level in (1, 2, 3):
-                headings.append((level, re.sub(r"[`*_]", "", text), slug))
+                clean = re.sub(r"[`*_]", "", text)
+                headings.append((level, clean, slug))
+                current = slug
+                e = secindex.setdefault(slug, {"text": [], "tools": set(), "tags": []})
+                e["text"].append(_plano(clean))
+                e["tools"].update(_herramientas(clean))
             out.append(f'<h{level} id="{slug}">{inline(text)}<a class="anchor" href="#{slug}">#</a></h{level}>')
             i += 1
             continue
@@ -142,7 +267,9 @@ def convert(md, headings):
             while i < n and re.match(r"^\s*>\s?", lines[i]):
                 buf.append(re.sub(r"^\s*>\s?", "", lines[i]))
                 i += 1
-            out.append(f'<blockquote>{inline(" ".join(buf))}</blockquote>')
+            texto = " ".join(buf)
+            idx(texto, tools=_herramientas(texto))
+            out.append(f'<blockquote>{inline(texto)}</blockquote>')
             continue
 
         # Tabla (| a | b |)
@@ -159,6 +286,8 @@ def convert(md, headings):
             for r in rows:
                 tds = "".join(f"<td>{inline(c)}</td>" for c in r)
                 trs += f"<tr>{tds}</tr>"
+                idx(" ".join(r), tools=_herramientas(" ".join(r)))
+            idx(" ".join(header))
             out.append(f'<div class="tablewrap"><table><thead><tr>{th}</tr></thead><tbody>{trs}</tbody></table></div>')
             continue
 
@@ -177,8 +306,10 @@ def convert(md, headings):
             cb = re.match(r"^\[([ xX])\]\s+(.*)$", content)
             if cb:
                 checked = "checked" if cb.group(1).lower() == "x" else ""
+                idx(cb.group(2), tools=_herramientas(cb.group(2)))
                 out.append(f'<li class="task"><input type="checkbox" disabled {checked}>{inline(cb.group(2))}</li>')
             else:
+                idx(content, tools=_herramientas(content))
                 out.append(f"<li>{inline(content)}</li>")
             i += 1
             continue
@@ -196,7 +327,9 @@ def convert(md, headings):
         while i < n and lines[i].strip() != "" and not re.match(r"^(#{1,6}\s|```|\s*>|\s*[-*+]\s|\s*---\s*$)", lines[i]):
             buf.append(lines[i])
             i += 1
-        out.append(f"<p>{inline(' '.join(buf))}</p>")
+        texto = " ".join(buf)
+        idx(texto, tools=_herramientas(texto))
+        out.append(f"<p>{inline(texto)}</p>")
 
     close_list(list_stack)
     return "\n".join(out)
@@ -204,7 +337,8 @@ def convert(md, headings):
 # ------------------------------ Ensamblado ---------------------------------
 
 def main():
-    docs = []  # (id, titulo, emoji, html, headings)
+    docs = []     # (id, titulo, emoji, html, headings)
+    index = []    # entradas del buscador (se vuelca a JS)
     for fname, titulo, emoji, sec_id in FUENTES:
         path = CONTENIDO / fname
         if not path.exists():
@@ -212,8 +346,28 @@ def main():
             continue
         md = path.read_text(encoding="utf-8")
         headings = []
-        body = convert(md, headings)
+        secindex = {}
+        body = convert(md, headings, secindex)
         docs.append((sec_id, titulo, emoji, body, headings))
+
+        # Entradas del índice: una por encabezado nivel 2 y 3.
+        for level, text, slug in headings:
+            if level == 1:
+                continue
+            e = secindex.get(slug, {"text": [], "tools": set(), "tags": []})
+            cuerpo = " ".join(e["text"])
+            tools = sorted(e["tools"])
+            tags = e["tags"]
+            # texto buscable (normalizado): título + cuerpo + tags + herramientas
+            blob = normaliza(" ".join([text, cuerpo, " ".join(tags), " ".join(tools)]))
+            snippet = cuerpo.strip()
+            if len(snippet) > 140:
+                snippet = snippet[:140].rsplit(" ", 1)[0] + "…"
+            index.append({
+                "slug": slug, "title": text, "sec": sec_id, "secTitle": titulo,
+                "secEmoji": emoji, "level": level, "tools": tools,
+                "snippet": snippet, "text": blob,
+            })
         print(f"  ok {fname}  ({len(headings)} encabezados)")
 
     # Menú lateral
@@ -234,15 +388,36 @@ def main():
         )
     nav_html = "\n".join(nav)
 
+    # Chips de categoría
+    chips = "".join(
+        f'<button class="chip" data-q="{html.escape(q, quote=True)}">{html.escape(label)}</button>'
+        for label, q in CATEGORIAS
+    )
+
+    # Datos para el buscador (normalizamos las claves de sinónimos por si acaso)
+    syn = {normaliza(k): [normaliza(x) for x in v] for k, v in SINONIMOS.items()}
+    def jdump(obj):
+        # Escapar "<" evita que un "</script>" dentro del contenido cierre el
+        # bloque <script> y rompa la página (se decodifica igual en JS).
+        return json.dumps(obj, ensure_ascii=False).replace("<", "\\u003c")
+    data_js = (
+        "window.__IDX__=" + jdump(index) + ";"
+        "window.__SYN__=" + jdump(syn) + ";"
+    )
+
     # Contenido
     sections = []
     for sec_id, titulo, emoji, body, headings in docs:
         sections.append(f'<section class="doc" id="sec-{sec_id}" data-sec="{sec_id}">\n{body}\n</section>')
     content_html = "\n".join(sections)
 
-    html_out = TEMPLATE.replace("{{NAV}}", nav_html).replace("{{CONTENT}}", content_html)
+    html_out = (TEMPLATE
+                .replace("{{NAV}}", nav_html)
+                .replace("{{CHIPS}}", chips)
+                .replace("{{DATA}}", data_js)
+                .replace("{{CONTENT}}", content_html))
     SALIDA.write_text(html_out, encoding="utf-8")
-    print(f"\n==> generado: {SALIDA}")
+    print(f"\n==> generado: {SALIDA}  ({len(index)} entradas en el índice)")
     print("   ábrelo con doble clic o: xdg-open index.html")
 
 
@@ -337,6 +512,37 @@ a:hover{text-decoration:underline}
 .navlinks a.active{color:var(--accent); border-left-color:var(--accent); background:var(--panel2)}
 .navlinks a.hide{display:none}
 
+/* Chips de categoría */
+.chips{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px}
+.chip{
+  background:var(--bg); color:var(--muted); border:1px solid var(--border);
+  border-radius:999px; padding:4px 10px; font-size:12px; cursor:pointer; line-height:1.4;
+}
+.chip:hover{color:var(--text); border-color:var(--accent)}
+.chip.active{background:var(--accent); color:#06231a; border-color:var(--accent); font-weight:650}
+
+/* Panel de resultados del buscador */
+#results{display:none}
+#results.show{display:block}
+#nav.hide{display:none}
+.res-group{border-bottom:1px solid var(--border); padding:6px 0 10px}
+.res-grouphead{
+  display:flex; align-items:center; gap:7px; padding:9px 14px 4px;
+  font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted);
+}
+.res-item{display:block; padding:7px 14px 8px; border-left:2px solid transparent; cursor:pointer}
+.res-item:hover{background:var(--panel2); text-decoration:none; border-left-color:var(--accent)}
+.res-title{color:var(--text); font-size:14px; font-weight:600}
+.res-item.lvl3 .res-title{font-weight:500}
+.res-snippet{color:var(--muted); font-size:12px; margin-top:2px; line-height:1.45}
+.res-tools{margin-top:5px; display:flex; flex-wrap:wrap; gap:4px}
+.res-tools .pill{
+  font-size:10.5px; background:var(--panel2); color:var(--accent); border:1px solid var(--border);
+  border-radius:5px; padding:1px 6px; font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+.res-empty{color:var(--muted); font-size:13px; padding:20px 14px; text-align:center}
+.res-item mark, .res-snippet mark{background:var(--mark); color:#111; padding:0 1px; border-radius:2px}
+
 /* Content */
 .doc{padding-top:8px}
 .doc h1{font-size:28px; margin:34px 0 8px; padding-bottom:8px; border-bottom:2px solid var(--border)}
@@ -427,11 +633,13 @@ mark{background:var(--mark); color:#111; padding:0 2px; border-radius:3px}
       </div>
     </div>
     <div class="searchbox">
-      <input id="search" type="search" placeholder="Buscar en el menú…" autocomplete="off">
+      <input id="search" type="search" placeholder="Buscar: osint, nmap, ssh, estego…" autocomplete="off" title="Atajo: pulsa /">
+      <div class="chips">{{CHIPS}}</div>
     </div>
     <nav id="nav">
       {{NAV}}
     </nav>
+    <div id="results"></div>
   </aside>
 
   <div class="backdrop" id="backdrop"></div>
@@ -451,6 +659,7 @@ mark{background:var(--mark); color:#111; padding:0 2px; border-radius:3px}
 
 <button class="totop" id="totop" title="Arriba">↑</button>
 
+<script>{{DATA}}</script>
 <script>
 (function(){
   // --- Tema ---
@@ -501,19 +710,173 @@ mark{background:var(--mark); color:#111; padding:0 2px; border-radius:3px}
     });
   });
 
-  // --- Buscador del menú ---
-  var search = document.getElementById('search');
-  search.addEventListener('input', function(){
-    var q = search.value.trim().toLowerCase();
-    document.querySelectorAll('.navgroup').forEach(function(g){
-      var any=false;
-      g.querySelectorAll('.navlinks a').forEach(function(a){
-        var match = !q || a.textContent.toLowerCase().indexOf(q)>=0;
-        a.classList.toggle('hide', !match);
-        if(match) any=true;
-      });
-      g.style.display = any ? '' : 'none';
+  // --- Buscador inteligente ---
+  var search  = document.getElementById('search');
+  var nav      = document.getElementById('nav');
+  var results  = document.getElementById('results');
+  var chips    = Array.prototype.slice.call(document.querySelectorAll('.chip'));
+  var IDX = window.__IDX__ || [];
+  var SYN = window.__SYN__ || {};
+
+  function norm(s){
+    return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+  }
+  // ¿`text` contiene `term` como palabra (no incrustado en otra)? Evita que
+  // "22" o "nc" casen dentro de "2022" o "once". Términos con símbolos
+  // (/dev/tcp, -p-, flag{) se buscan como subcadena.
+  function has(text, term){
+    if(!term) return false;
+    var alnum = /[a-z0-9]/.test(term), from=0, p;
+    while((p=text.indexOf(term, from))>=0){
+      if(!alnum) return true;
+      var b = p>0 ? text[p-1] : ' ';
+      var a = (p+term.length<text.length) ? text[p+term.length] : ' ';
+      if(!/[a-z0-9]/.test(b) && !/[a-z0-9]/.test(a)) return true;
+      from = p+1;
+    }
+    return false;
+  }
+  function esc(s){ return s.replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  // Resalta en `texto` los términos (ya normalizados) sin romper acentos visibles.
+  function resaltar(texto, terms){
+    if(!terms.length) return esc(texto);
+    var ntext = norm(texto), out='', used=new Array(texto.length).fill(false);
+    terms.forEach(function(t){
+      if(!t) return;
+      var from=0, p;
+      while((p=ntext.indexOf(t, from))>=0){
+        for(var k=p;k<p+t.length;k++) used[k]=true;
+        from=p+t.length;
+      }
     });
+    var open=false;
+    for(var i=0;i<texto.length;i++){
+      if(used[i] && !open){ out+='<mark>'; open=true; }
+      if(!used[i] && open){ out+='</mark>'; open=false; }
+      out+=esc(texto[i]);
+    }
+    if(open) out+='</mark>';
+    return out;
+  }
+
+  // Expande el query: tokens propios + sinónimos de las claves que coincidan.
+  function expandir(q){
+    var tokens = q.split(/\s+/).filter(Boolean);
+    var terms = {};           // término -> true (para resaltar/buscar)
+    tokens.forEach(function(t){ terms[t]=true; });
+    // frases completas y tokens contra el diccionario de sinónimos
+    Object.keys(SYN).forEach(function(key){
+      if(q.indexOf(key)>=0 || tokens.indexOf(key)>=0){
+        SYN[key].forEach(function(x){ terms[x]=true; });
+      }
+    });
+    return { tokens: tokens, terms: Object.keys(terms) };
+  }
+
+  function buscar(q){
+    q = norm(q.trim());
+    if(!q){ mostrarMenu(); return; }
+    var ex = expandir(q);
+    var hits = [];
+    IDX.forEach(function(e){
+      // Frase-concepto: si el query contiene una clave multi-palabra del
+      // diccionario (ej. "escaneo de puertos"), basta con que la entrada
+      // tenga alguno de sus sinónimos.
+      var phraseHit = Object.keys(SYN).some(function(key){
+        return key.indexOf(' ')>=0 && q.indexOf(key)>=0
+            && SYN[key].some(function(x){ return has(e.text, x); });
+      });
+      // Si no, cada token del query debe estar satisfecho (él o un sinónimo suyo).
+      var ok = phraseHit || ex.tokens.every(function(tok){
+        if(has(e.text, tok)) return true;
+        var syn = SYN[tok]; // sinónimos exactos de ese token
+        if(syn && syn.some(function(x){ return has(e.text, x); })) return true;
+        return false;
+      });
+      if(!ok) return;
+      // score: título pesa más; + por término encontrado; + por herramienta
+      var score=0, title=norm(e.title);
+      ex.terms.forEach(function(t){
+        if(!t) return;
+        if(has(title, t)) score+=5;
+        if(has(e.text, t)) score+=1;
+        if(e.tools.indexOf(t)>=0) score+=2;
+      });
+      hits.push({e:e, score:score});
+    });
+    hits.sort(function(a,b){ return b.score-a.score || a.e.level-b.e.level; });
+    render(hits.map(function(h){ return h.e; }), ex.terms);
+  }
+
+  function render(items, terms){
+    nav.classList.add('hide');
+    results.classList.add('show');
+    if(!items.length){
+      results.innerHTML = '<div class="res-empty">Sin resultados.<br>Prueba otra palabra o un chip de categoría.</div>';
+      return;
+    }
+    // agrupar por sección respetando el orden del índice (= orden de FUENTES)
+    var order=[], groups={};
+    items.forEach(function(e){
+      if(!groups[e.sec]){ groups[e.sec]={emoji:e.secEmoji, title:e.secTitle, items:[]}; order.push(e.sec); }
+      groups[e.sec].items.push(e);
+    });
+    var htmlout='';
+    order.forEach(function(sec){
+      var g=groups[sec];
+      htmlout += '<div class="res-group"><div class="res-grouphead"><span>'+g.emoji+'</span><span>'+esc(g.title)+'</span></div>';
+      g.items.forEach(function(e){
+        var tools = e.tools.filter(function(t){ return terms.indexOf(t)>=0; }).slice(0,6);
+        if(!tools.length) tools = e.tools.slice(0,4);
+        var pills = tools.length ? '<div class="res-tools">'+tools.map(function(t){ return '<span class="pill">'+esc(t)+'</span>'; }).join('')+'</div>' : '';
+        var snip = e.snippet ? '<div class="res-snippet">'+resaltar(e.snippet, terms)+'</div>' : '';
+        htmlout += '<a class="res-item '+(e.level===3?'lvl3':'')+'" href="#'+e.slug+'" data-slug="'+e.slug+'">'
+                 +   '<div class="res-title">'+resaltar(e.title, terms)+'</div>'+snip+pills
+                 + '</a>';
+      });
+      htmlout += '</div>';
+    });
+    results.innerHTML = htmlout;
+    // clic en resultado: cerrar menú en móvil
+    results.querySelectorAll('.res-item').forEach(function(a){
+      a.addEventListener('click', function(){ if(window.innerWidth<=860) closeNav(); });
+    });
+  }
+
+  function mostrarMenu(){
+    results.classList.remove('show');
+    results.innerHTML='';
+    nav.classList.remove('hide');
+  }
+
+  search.addEventListener('input', function(){
+    chips.forEach(function(c){ if(norm(c.getAttribute('data-q'))!==norm(search.value)) c.classList.remove('active'); });
+    buscar(search.value);
+  });
+
+  // Chips: clic ejecuta la consulta (o la limpia si ya estaba activa)
+  chips.forEach(function(c){
+    c.addEventListener('click', function(){
+      var q = c.getAttribute('data-q');
+      if(c.classList.contains('active')){
+        c.classList.remove('active'); search.value=''; mostrarMenu(); return;
+      }
+      chips.forEach(function(x){ x.classList.remove('active'); });
+      c.classList.add('active');
+      search.value = q;
+      buscar(q);
+    });
+  });
+
+  // Atajos: "/" enfoca, Esc limpia, Enter salta al primer resultado
+  document.addEventListener('keydown', function(ev){
+    if(ev.key==='/' && document.activeElement!==search){ ev.preventDefault(); search.focus(); search.select(); }
+    else if(ev.key==='Escape' && document.activeElement===search){ search.value=''; chips.forEach(function(x){x.classList.remove('active');}); mostrarMenu(); search.blur(); }
+    else if(ev.key==='Enter' && document.activeElement===search){
+      var first=results.querySelector('.res-item');
+      if(first){ ev.preventDefault(); first.click(); location.hash=first.getAttribute('data-slug'); if(window.innerWidth<=860) closeNav(); }
+    }
   });
 
   // --- Resaltar sección activa al hacer scroll (scrollspy) ---
