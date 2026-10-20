@@ -13,7 +13,7 @@ Estas reglas mandan sobre todo lo demás:
 4. **Formato de bandera:** `flag{...}` o `CyberFEI{...}`. Búscala siempre con `grep`/`strings`.
 5. **Zona gris (pregunta a los organizadores antes de usar):** `sqlmap`, `wpscan`, `nikto`/`nuclei`, RsaCtfTool y cualquier ataque automatizado. Si dudas, **hazlo manual y documéntalo** → eso te da el 100% de estilo.
 
-> Por la regla 3: escribe TÚ los comandos. Los `.py` del kit (`decode.py`, `rsa_tool.py`, `pwn_template.py`) son solo para **estudiar en casa**, NO para el evento.
+> Por la regla 3: escribe TÚ los comandos. Los `.py` del kit (`kit/scripts/decode.py`, `rsa_tool.py`, `pwn_template.py`) son solo para **estudiar en casa**, NO para el evento.
 
 ---
 

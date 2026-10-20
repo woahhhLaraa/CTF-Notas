@@ -16,11 +16,11 @@ Kali trae casi todo, pero asegura estos (los usamos en la guía):
 ```bash
 sudo apt -y install \
   nmap wireshark tshark tcpdump netcat-openbsd socat \
-  ffuf gobuster feroxbuster gobuster whatweb hydra wpscan exploitdb \
+  ffuf gobuster feroxbuster whatweb hydra wpscan exploitdb \
   binwalk foremost exiftool steghide stegseek zsteg pngcheck zbar-tools sleuthkit \
   gdb radare2 ltrace strace ghidra \
   john hashcat hashid \
-  python3-pip jq imagemagick poppler-utils qpdf audacity \
+  python3-pip pipx jq imagemagick poppler-utils qpdf audacity \
   metasploit-framework seclists
 ```
 > Si uno no existe con ese nombre: `apt search <palabra>`. `zsteg` a veces va por gem: `sudo gem install zsteg`.
@@ -30,6 +30,13 @@ sudo apt -y install \
 sudo apt -y install python3-pwntools python3-pycryptodome python3-sympy python3-requests python3-pil
 ```
 > `pip install` da error `externally-managed-environment` en Kali. Instala por apt (arriba). Si una librería no existe por apt, solo para esa: `pip install --user --break-system-packages NOMBRE`.
+
+**Volatility 3** (forense de memoria) no viene por apt; instálalo con pipx (aislado, sin romper PEP 668):
+```bash
+pipx install volatility3
+pipx ensurepath   # añade ~/.local/bin al PATH; abre una terminal nueva después
+```
+> Esto deja el comando `vol` disponible. La verificación del paso 7 corre `vol -h`; si no instalas esto, ese comando falla.
 
 ## 3. Wordlists
 ```bash
@@ -68,9 +75,9 @@ git clone --depth 1 https://github.com/gchq/CyberChef
 - **Ghidra** ya viene en Kali (`ghidra`).
 
 ## 6. Copia el kit a la VM
-Desde la VM (carpeta compartida o USB):
+El kit vive en la carpeta `kit/` de este repo (scripts de **estudio**, no para el evento). Desde donde tengas el repo:
 ```bash
-cp -r /ruta/al/CTF-Kit ~/CTF-Kit && chmod +x ~/CTF-Kit/scripts/*.sh ~/CTF-Kit/scripts/*.py
+cp -r kit ~/CTF-Kit && chmod +x ~/CTF-Kit/scripts/*.py
 ```
 
 ---

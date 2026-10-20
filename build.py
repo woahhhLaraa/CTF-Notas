@@ -33,8 +33,10 @@ SALIDA = RAIZ / "index.html"
 # ---- Lista de secciones. Para añadir contenido, agrega una tupla aquí. ----
 # (nombre_de_archivo_en_contenido, título visible, emoji, id_seccion)
 FUENTES = [
+    ("CHULETA.md",                "Chuleta (1 página)",  "⚡", "chuleta"),
     ("COMANDOS.md",               "Comandos",            "⌨️", "comandos"),
     ("GUIA-EXPLICADA.md",         "Guía explicada",      "📖", "guia"),
+    ("WRITEUP.md",                "Writeup",             "📝", "writeup"),
     ("PREPARACION-OFFLINE.md",    "Preparación offline", "📦", "preparacion"),
 ]
 

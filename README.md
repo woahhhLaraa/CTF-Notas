@@ -33,8 +33,16 @@ CTF-Notas/
 ├── index.html          # sitio generado (no editar a mano)
 ├── build.py            # generador
 ├── contenido/
+│   ├── CHULETA.md            # chuleta de 1 página (imprimible)
 │   ├── COMANDOS.md
 │   ├── GUIA-EXPLICADA.md
+│   ├── WRITEUP.md            # plantilla de writeup
 │   └── PREPARACION-OFFLINE.md
+├── kit/                # scripts de ESTUDIO (no para el evento)
+│   ├── README.md
+│   └── scripts/
+│       ├── decode.py
+│       ├── rsa_tool.py
+│       └── pwn_template.py
 └── README.md
 ```
