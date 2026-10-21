@@ -288,9 +288,10 @@ strings -n 6 ARCHIVO | grep -iE 'flag|cyberfei|ctf'
 
 ## 11. Guardar evidencia (clave para el writeup = 40 pts)
 ```bash
-script -t sesion.log
+grabar <reto>
 ```
-- `script` **graba toda la terminal** (comandos y salidas) a un archivo. Ctrl-D para cerrar. Actívalo al empezar cada reto y ya no reconstruyes nada.
+- `grabar` **graba toda la terminal** (comandos y salidas) y al cerrar deja `<reto>.txt` ya sin códigos de color, listo para pegar en el writeup. Escribe `exit` (o Ctrl-D) para cerrar. Actívalo al empezar cada reto y ya no reconstruyes nada.
+- Ojo: el viejo `script -t sesion.log` dejaba el log ilegible (mandaba los tiempos a la pantalla). Por eso usamos `grabar`. El script vive en `~/.config/fish/functions/grabar.fish` (y en Kali, en `~/.local/bin/grabar`).
 ```bash
 history > comandos.txt
 ```

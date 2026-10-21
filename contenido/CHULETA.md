@@ -6,7 +6,7 @@
 
 ## Primero, SIEMPRE (reflejo universal)
 ```bash
-script -t sesion.log          # graba la sesión (writeup = 40 pts)
+grabar <reto>                 # graba la sesión -> <reto>.txt limpio (writeup = 40 pts)
 strings -n 6 ARCHIVO | grep -iE 'flag|cyberfei|ctf'
 ```
 

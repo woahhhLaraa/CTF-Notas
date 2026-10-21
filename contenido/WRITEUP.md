@@ -7,10 +7,15 @@
 ## Reflejo cero: graba la sesión
 Antes de tocar el reto, en la terminal:
 ```bash
-script -t sesion.log
+grabar <reto>
 ```
-Graba **todos** los comandos y salidas. Ctrl-D para cerrar. Así el writeup se
-escribe casi solo: copias de `sesion.log` el comando y la salida exactos.
+Graba **todos** los comandos y salidas. Escribe `exit` (o Ctrl-D) para cerrar.
+Deja `<reto>.txt` ya limpio de colores (y `<reto>.raw` con los colores, por si
+acaso). Así el writeup se escribe casi solo: copias de `<reto>.txt` el comando y
+la salida exactos.
+
+> Nota: NO uses `script -t sesion.log`. En esta versión de `script` esa opción
+> manda los tiempos a la pantalla y el log sale ilegible. Usa `grabar`.
 
 ## Esqueleto (uno por reto)
 

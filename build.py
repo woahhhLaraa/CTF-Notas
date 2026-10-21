@@ -35,6 +35,7 @@ SALIDA = RAIZ / "index.html"
 FUENTES = [
     ("CHULETA.md",                "Chuleta (1 página)",  "⚡", "chuleta"),
     ("COMANDOS.md",               "Comandos",            "⌨️", "comandos"),
+    ("BANDIT.md",                 "Bandit (comandos)",   "🎯", "bandit"),
     ("GUIA-EXPLICADA.md",         "Guía explicada",      "📖", "guia"),
     ("WRITEUP.md",                "Writeup",             "📝", "writeup"),
     ("PREPARACION-OFFLINE.md",    "Preparación offline", "📦", "preparacion"),
