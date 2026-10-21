@@ -36,6 +36,7 @@ FUENTES = [
     ("CHULETA.md",                "Chuleta (1 página)",  "⚡", "chuleta"),
     ("COMANDOS.md",               "Comandos",            "⌨️", "comandos"),
     ("BANDIT.md",                 "Bandit (comandos)",   "🎯", "bandit"),
+    ("NATAS-KRYPTON.md",          "Natas + Krypton",     "🕸️", "natas-krypton"),
     ("GUIA-EXPLICADA.md",         "Guía explicada",      "📖", "guia"),
     ("WRITEUP.md",                "Writeup",             "📝", "writeup"),
     ("PREPARACION-OFFLINE.md",    "Preparación offline", "📦", "preparacion"),
